@@ -54,6 +54,7 @@ export const mockClasses: Class[] = [
     schedule: [
       { day: 'Thứ 2', startTime: '18:00', endTime: '20:00' },
       { day: 'Thứ 5', startTime: '18:00', endTime: '20:00' },
+      { day: 'Thứ 5', startTime: '18:00', endTime: '20:00' },
     ],
     studentCount: 15,
     maxStudents: 20,

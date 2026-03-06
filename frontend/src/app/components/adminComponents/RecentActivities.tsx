@@ -1,102 +1,120 @@
-import { UserPlus, BookOpen, DollarSign, Calendar, Clock } from 'lucide-react';
+import { UserPlus, BookOpen, DollarSign, Calendar, Clock, Users } from 'lucide-react';
 
 const activities = [
   {
     id: 1,
-    type: 'student',
-    title: 'Học viên mới đăng ký',
-    description: 'Nguyễn Văn A đã đăng ký khóa Toán 10',
-    time: '5 phút trước',
+    type: 'enrollment',
     icon: UserPlus,
-    color: 'bg-blue-500'
+    color: 'bg-blue-100 text-blue-600',
+    title: 'Học viên mới đăng ký',
+    description: 'Nguyễn Văn An đăng ký khóa Toán 10',
+    time: '5 phút trước'
   },
   {
     id: 2,
-    type: 'course',
-    title: 'Khóa học mới',
-    description: 'Khóa "Tiếng Anh giao tiếp" đã được tạo',
-    time: '1 giờ trước',
-    icon: BookOpen,
-    color: 'bg-purple-500'
+    type: 'payment',
+    icon: DollarSign,
+    color: 'bg-green-100 text-green-600',
+    title: 'Thanh toán thành công',
+    description: 'Trần Thị Bình thanh toán ₫2.5M',
+    time: '15 phút trước'
   },
   {
     id: 3,
-    type: 'payment',
-    title: 'Thanh toán thành công',
-    description: 'Trần Thị B đã thanh toán học phí ₫2.500.000',
-    time: '2 giờ trước',
-    icon: DollarSign,
-    color: 'bg-green-500'
+    type: 'course',
+    icon: BookOpen,
+    color: 'bg-purple-100 text-purple-600',
+    title: 'Khóa học mới',
+    description: 'Khóa Vật lý 11 đã được mở',
+    time: '1 giờ trước'
   },
   {
     id: 4,
     type: 'schedule',
-    title: 'Lịch học mới',
-    description: 'Lịch học tuần tới đã được cập nhật',
-    time: '3 giờ trước',
     icon: Calendar,
-    color: 'bg-pink-500'
+    color: 'bg-orange-100 text-orange-600',
+    title: 'Lịch học cập nhật',
+    description: 'Lịch học tuần sau đã được cập nhật',
+    time: '2 giờ trước'
   },
   {
     id: 5,
-    type: 'student',
-    title: 'Học viên mới đăng ký',
-    description: 'Lê Văn C đã đăng ký khóa Vật lý 11',
-    time: '4 giờ trước',
+    type: 'enrollment',
     icon: UserPlus,
-    color: 'bg-blue-500'
-  }
+    color: 'bg-blue-100 text-blue-600',
+    title: 'Học viên mới đăng ký',
+    description: 'Lê Minh Châu đăng ký khóa Hóa 12',
+    time: '3 giờ trước'
+  },
 ];
 
-const upcomingClasses = [
+const classes = [
   {
     id: 1,
-    course: 'Toán 10 - Lớp A',
-    teacher: 'Thầy Nguyễn Văn X',
+    name: 'Toán 10 - Lớp A1',
+    teacher: 'Thầy Nguyễn Văn Nam',
     time: '14:00 - 16:00',
-    date: 'Hôm nay',
-    students: 25
+    date: 'Thứ 2, 27/01/2026',
+    students: 25,
+    maxStudents: 30,
+    color: 'bg-blue-500'
   },
   {
     id: 2,
-    course: 'Tiếng Anh - Lớp B',
-    teacher: 'Cô Trần Thị Y',
-    time: '16:30 - 18:30',
-    date: 'Hôm nay',
-    students: 20
+    name: 'Vật lý 11 - Lớp B2',
+    teacher: 'Cô Trần Thị Mai',
+    time: '16:00 - 18:00',
+    date: 'Thứ 2, 27/01/2026',
+    students: 18,
+    maxStudents: 25,
+    color: 'bg-green-500'
   },
   {
     id: 3,
-    course: 'Vật lý 11 - Lớp C',
-    teacher: 'Thầy Lê Văn Z',
-    time: '09:00 - 11:00',
-    date: 'Ngày mai',
-    students: 18
-  }
+    name: 'Hóa 12 - Lớp C1',
+    teacher: 'Thầy Lê Quang Minh',
+    time: '18:00 - 20:00',
+    date: 'Thứ 2, 27/01/2026',
+    students: 22,
+    maxStudents: 25,
+    color: 'bg-purple-500'
+  },
+  {
+    id: 4,
+    name: 'Tiếng Anh 9 - Lớp D3',
+    teacher: 'Cô Phạm Thu Hà',
+    time: '08:00 - 10:00',
+    date: 'Thứ 3, 28/01/2026',
+    students: 30,
+    maxStudents: 30,
+    color: 'bg-orange-500'
+  },
 ];
 
 export function RecentActivities() {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 ">
       {/* Recent Activities */}
-      <div className="lg:col-span-2 bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-        <h3 className="text-xl font-bold text-gray-900 mb-4">Hoạt động gần đây</h3>
+      <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900">Hoạt động gần đây</h3>
+          <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+            Xem tất cả
+          </button>
+        </div>
         <div className="space-y-4">
           {activities.map((activity) => {
             const Icon = activity.icon;
             return (
-              <div key={activity.id} className="flex items-start space-x-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                <div className={`${activity.color} p-2 rounded-lg flex-shrink-0`}>
-                  <Icon className="w-5 h-5 text-white" />
+              <div key={activity.id} className="flex items-start gap-4">
+                <div className={`${activity.color} p-2 rounded-lg`}>
+                  <Icon className="w-5 h-5" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900">{activity.title}</p>
-                  <p className="text-sm text-gray-600 truncate">{activity.description}</p>
+                  <p className="font-medium text-gray-900">{activity.title}</p>
+                  <p className="text-sm text-gray-500 truncate">{activity.description}</p>
                 </div>
-                <div className="flex items-center space-x-1 text-gray-500 flex-shrink-0">
-                  <Clock className="w-4 h-4" />
-                  <span className="text-xs">{activity.time}</span>
-                </div>
+                <span className="text-xs text-gray-400 whitespace-nowrap">{activity.time}</span>
               </div>
             );
           })}
@@ -105,29 +123,42 @@ export function RecentActivities() {
 
       {/* Upcoming Classes */}
       <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-        <h3 className="text-xl font-bold text-gray-900 mb-4">Lịch học sắp tới</h3>
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900">Lớp học sắp tới</h3>
+          <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+            Xem lịch
+          </button>
+        </div>
         <div className="space-y-4">
-          {upcomingClasses.map((classItem) => (
-            <div 
-              key={classItem.id} 
-              className="p-4 rounded-lg border border-gray-200 hover:border-purple-300 transition-colors"
-              style={{
-                background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(240, 147, 251, 0.05) 100%)'
-              }}
-            >
-              <div className="flex items-start justify-between mb-2">
-                <h4 className="font-medium text-gray-900 text-sm">{classItem.course}</h4>
-                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-                  {classItem.date}
-                </span>
-              </div>
-              <p className="text-xs text-gray-600 mb-2">{classItem.teacher}</p>
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <div className="flex items-center space-x-1">
-                  <Clock className="w-3 h-3" />
-                  <span>{classItem.time}</span>
+          {classes.map((classItem) => (
+            <div key={classItem.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+              <div className="flex items-start gap-3">
+                <div className={`${classItem.color} w-1 h-full rounded-full`}></div>
+                <div className="flex-1">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <h4 className="font-semibold text-gray-900">{classItem.name}</h4>
+                      <p className="text-sm text-gray-500">{classItem.teacher}</p>
+                    </div>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${classItem.students === classItem.maxStudents
+                      ? 'bg-red-100 text-red-700'
+                      : 'bg-green-100 text-green-700'
+                      }`}>
+                      {classItem.students === classItem.maxStudents ? 'Đầy' : 'Còn chỗ'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
+                      <span>{classItem.time}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Users className="w-4 h-4" />
+                      <span>{classItem.students}/{classItem.maxStudents}</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">{classItem.date}</p>
                 </div>
-                <span>{classItem.students} học viên</span>
               </div>
             </div>
           ))}
@@ -136,3 +167,4 @@ export function RecentActivities() {
     </div>
   );
 }
+
