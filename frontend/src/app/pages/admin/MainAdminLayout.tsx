@@ -22,9 +22,10 @@ export function MainLayout() {
 
     return () => clearTimeout(timer)
   }, [alert])
+   
 
   return (
-    <div className="min-h-screen bg-[#f8faff] relative">
+    <div className="min-h-screen bg-[#f3f5f7] relative">
       <EduHeader />
 
       {alert && (

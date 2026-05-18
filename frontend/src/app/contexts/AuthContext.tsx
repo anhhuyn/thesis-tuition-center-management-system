@@ -27,13 +27,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // Khôi phục token từ localStorage
+  const token = localStorage.getItem('token');
+  if (token) {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  }
+
   // verify token khi app load
   useEffect(() => {
     api
       .get('/auth/me')
       .then(res => {
         const data = res as unknown as { user: User }
-        console.log(res)
         setUser(data.user)
       })
       .catch(() => {

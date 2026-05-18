@@ -1010,6 +1010,10 @@
     border-width: 3px;
   }
 
+  .border-dashed {
+  --tw-border-style: dashed;
+  border-style: dashed;
+}
   .border-t {
     border-top-style: var(--tw-border-style);
     border-top-width: 1px;
@@ -2618,4 +2622,19 @@ h1, h2, h3, h4, h5, h6, .heading-font {
   to {
     transform: scaleX(0);
   }
+
+  @keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease;
+}
 }

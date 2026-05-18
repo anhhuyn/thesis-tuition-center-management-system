@@ -1,8 +1,9 @@
 import { X, Mail, Lock } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { loginApi } from '../../utils/api'
-import { useAuth } from '../../contexts/AuthContext'
-import { useNavigate } from 'react-router-dom'
+import { useState } from 'react';
+import { loginApi } from '../../utils/api';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import api from '../../utils/axios'; // axios instance đã cấu hình
 
 interface LoginModalProps {
     isOpen: boolean;
@@ -15,38 +16,48 @@ export function LoginModal({
     onClose,
     defaultMode = 'login',
 }: LoginModalProps) {
-
     const [isLogin, setIsLogin] = useState(defaultMode === 'login');
-    const { login } = useAuth()
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-    const navigate = useNavigate()
-
-    useEffect(() => {
-        setIsLogin(defaultMode === 'login');
-    }, [defaultMode]);
+    const { login } = useAuth();
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
     if (!isOpen) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setLoading(true)
-        setError(null)
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
 
         try {
-            const res = await loginApi(email, password)
+            const res = await loginApi(email, password);
+            const { user, token } = res;
 
-            login(res.user)
-            onClose()
-            navigate('/admin/home')
+            // Lưu token
+            localStorage.setItem('token', token);
+            api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+            // Cập nhật context
+            login(user);
+            onClose();
+
+            // Điều hướng theo roleId
+            if (user.roleId === 'R0') {
+                navigate('/admin/home');
+            } else if (user.roleId === 'R1') {
+                navigate('/teacher/classes');
+            } else {
+                navigate('/');
+            }
         } catch (err: any) {
-            setError(err?.response?.data?.message || 'Sai email hoặc mật khẩu')
+            setError(err?.response?.data?.message || 'Sai email hoặc mật khẩu');
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             {/* Backdrop */}
@@ -180,12 +191,10 @@ export function LoginModal({
                             </button>
                         </form>
                     ) : (
-
                         <div className="text-center py-10 px-6 rounded-2xl bg-gray-50 border border-dashed border-gray-300">
                             <p className="text-gray-600 mb-6">
                                 Việc tạo tài khoản mới hiện được quản lý bởi hệ thống. Vui lòng liên hệ <b>quản trị viên trung tâm</b> để được hỗ trợ.
                             </p>
-
                             <div className="text-sm text-gray-500">
                                 Hotline: <b>090x.xxx.xxx</b> <br />
                                 Email: <b>admin@educenter.vn</b>
@@ -193,7 +202,6 @@ export function LoginModal({
                         </div>
                     )}
                 </div>
-
             </div>
 
             <style>{`

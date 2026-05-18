@@ -2,7 +2,7 @@ import { ArrowRight, PlayCircle, Users, DollarSign, Calendar } from 'lucide-reac
 
 export function EduHero() {
   return (
-    <section id="home" className="relative pt-20 sm:pt-24 overflow-hidden">
+    <section id="home" className="relative pt-20 sm:pt-16 overflow-hidden">
       <div className="gradient-bg min-h-[90vh] sm:min-h-[85vh] relative">
         {/* Decorative Elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">

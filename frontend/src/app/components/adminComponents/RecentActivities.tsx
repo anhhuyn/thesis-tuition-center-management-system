@@ -1,4 +1,7 @@
 import { UserPlus, BookOpen, DollarSign, Calendar, Clock, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import type { UpcomingSession } from '../../utils/types/session';
+import { sessionApi } from '../../utils/api';
 
 const activities = [
   {
@@ -48,50 +51,56 @@ const activities = [
   },
 ];
 
-const classes = [
-  {
-    id: 1,
-    name: 'Toán 10 - Lớp A1',
-    teacher: 'Thầy Nguyễn Văn Nam',
-    time: '14:00 - 16:00',
-    date: 'Thứ 2, 27/01/2026',
-    students: 25,
-    maxStudents: 30,
-    color: 'bg-blue-500'
-  },
-  {
-    id: 2,
-    name: 'Vật lý 11 - Lớp B2',
-    teacher: 'Cô Trần Thị Mai',
-    time: '16:00 - 18:00',
-    date: 'Thứ 2, 27/01/2026',
-    students: 18,
-    maxStudents: 25,
-    color: 'bg-green-500'
-  },
-  {
-    id: 3,
-    name: 'Hóa 12 - Lớp C1',
-    teacher: 'Thầy Lê Quang Minh',
-    time: '18:00 - 20:00',
-    date: 'Thứ 2, 27/01/2026',
-    students: 22,
-    maxStudents: 25,
-    color: 'bg-purple-500'
-  },
-  {
-    id: 4,
-    name: 'Tiếng Anh 9 - Lớp D3',
-    teacher: 'Cô Phạm Thu Hà',
-    time: '08:00 - 10:00',
-    date: 'Thứ 3, 28/01/2026',
-    students: 30,
-    maxStudents: 30,
-    color: 'bg-orange-500'
-  },
-];
+
+const getStatusColor = (remaining: string) => {
+  if (remaining.includes('giờ')) return 'bg-purple-100 text-purple-600'
+  if (remaining.includes('ngày')) return 'bg-blue-100 text-blue-600'
+  return 'bg-gray-100 text-gray-600'
+}
+
+const getTimeRemaining = (date: string, time: string) => {
+  const now = new Date()
+  const sessionDate = new Date(`${date}T${time}`)
+
+  const diffMs = sessionDate.getTime() - now.getTime()
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+
+  if (diffHours <= 0) return 'Đang diễn ra'
+  if (diffHours < 24) return `Còn ${diffHours} giờ`
+  return `Còn ${Math.floor(diffHours / 24)} ngày`
+}
+
+const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500']
+
+const formatDate = (dateStr: string) => {
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('vi-VN', {
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
+
+const formatTime = (start: string, end: string) => {
+  return `${start.slice(0, 5)} - ${end.slice(0, 5)}`
+}
 
 export function RecentActivities() {
+  const [classes, setClasses] = useState<UpcomingSession[]>([])
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await sessionApi.getUpcomingSessions()
+        setClasses(data)
+      } catch (error) {
+        console.error('Error fetching sessions', error)
+      }
+    }
+
+    fetchData()
+  }, [])
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 ">
       {/* Recent Activities */}
@@ -122,46 +131,76 @@ export function RecentActivities() {
       </div>
 
       {/* Upcoming Classes */}
-      <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-gray-900">Lớp học sắp tới</h3>
-          <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-            Xem lịch
+      <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+
+            <h3 className="text-lg font-semibold text-gray-900">
+              Lớp học sắp tới
+            </h3>
+          </div>
+
+          <button className="mt-4 sm:mt-0 text-blue-600 font-medium hover:underline flex items-center gap-1 text-sm">
+            Xem tất cả giáo viên
           </button>
         </div>
-        <div className="space-y-4">
-          {classes.map((classItem) => (
-            <div key={classItem.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-              <div className="flex items-start gap-3">
-                <div className={`${classItem.color} w-1 h-full rounded-full`}></div>
+
+        {/* List */}
+        <div className="space-y-3">
+          {classes.map((item, index) => {
+            const color = colors[index % colors.length]
+            const remaining = getTimeRemaining(item.sessionDate, item.startTime)
+
+            return (
+              <div
+                key={index}
+                className="flex gap-3 p-4 rounded-xl border border-gray-100 bg-white 
+                   hover:shadow-md hover:bg-gray-50 transition-all duration-200"
+              >
+                {/* Color bar */}
+                <div className={`${color} w-1.5 rounded-full`}></div>
+
+                {/* Content */}
                 <div className="flex-1">
-                  <div className="flex items-start justify-between mb-2">
+                  {/* Title + badge */}
+                  <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="font-semibold text-gray-900">{classItem.name}</h4>
-                      <p className="text-sm text-gray-500">{classItem.teacher}</p>
+                      <h4 className="font-semibold text-gray-900 text-sm">
+                        {item.subjectName} - Lớp {item.grade}
+                      </h4>
+
+                      {/* Teacher */}
+                      <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                        <Users className="w-3 h-3" />
+                        {item.teacherName}
+                      </div>
                     </div>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${classItem.students === classItem.maxStudents
-                      ? 'bg-red-100 text-red-700'
-                      : 'bg-green-100 text-green-700'
-                      }`}>
-                      {classItem.students === classItem.maxStudents ? 'Đầy' : 'Còn chỗ'}
+
+                    {/* Remaining */}
+                    <span
+                      className={`text-xs px-3 py-1 rounded-full font-medium ${getStatusColor(remaining)}`}
+                    >
+                      {remaining}
                     </span>
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
+
+                  {/* Time + Date */}
+                  <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
                     <div className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      <span>{classItem.time}</span>
+                      <Clock className="w-3 h-3" />
+                      {formatTime(item.startTime, item.endTime)}
                     </div>
+
                     <div className="flex items-center gap-1">
-                      <Users className="w-4 h-4" />
-                      <span>{classItem.students}/{classItem.maxStudents}</span>
+                      <Calendar className="w-3 h-3" />
+                      {formatDate(item.sessionDate)}
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">{classItem.date}</p>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </div>
