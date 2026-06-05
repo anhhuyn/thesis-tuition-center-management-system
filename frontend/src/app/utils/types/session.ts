@@ -140,3 +140,27 @@ export interface SessionDetail {
   studentAttendances: StudentAttendanceInfo[]
   teacherAttendance: TeacherAttendanceInfo | null
 }
+
+export interface SessionActualContentUpdate {
+  isFollowPlan: boolean;
+  plannedSessionDetailId?: number | null;
+  actualTopic?: string;
+  actualContent?: string;
+  actualHomework?: string;
+  deviationReason?: string;
+  noteForNextSession?: string;
+}
+
+export interface SessionContent {
+  sessionId: number;
+  sessionDate: string;
+  startTime: string;
+  endTime: string;
+  displayTopic: string | null;
+  displayContent: string | null;
+  displayHomework: string | null;
+  isFollowingPlan: boolean;
+  plannedTopic: string | null;
+  deviationReason: string | null;
+  noteForNextSession: string | null;
+}

@@ -42,3 +42,34 @@ export interface UpdateAttendanceNotePayload {
   studentId: number
   note: string | null
 }
+
+
+export interface AttendanceHistoryItem {
+  attendanceId: number
+  sessionId: number
+  sessionDate: string        // LocalDate -> string
+  startTime: string          // LocalTime -> string
+  endTime: string            // LocalTime -> string
+  status: "present" | "absent" | "late"
+  note: string | null
+  roomName: string | null
+}
+
+export interface AttendanceStatistics {
+  studentId: number
+  studentName: string
+  subjectId: number
+  subjectName: string
+  totalSessions: number      // Tổng số buổi tham gia
+  presentCount: number       // Số buổi có mặt
+  absentCount: number        // Số buổi vắng
+  lateCount: number          // Số buổi trễ
+  attendanceRate: number     // Tỉ lệ chuyên cần (%)
+  history: AttendanceHistoryItem[]
+}
+
+
+export interface GetAttendanceStatisticsParams {
+  studentId: number
+  subjectId: number
+}

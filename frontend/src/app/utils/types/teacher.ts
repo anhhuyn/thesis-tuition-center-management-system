@@ -16,6 +16,7 @@ export interface TeacherBasic {
 }
 
 export interface TeacherIdResponse {
+  data: any;
   teacherId: number | null;
   userId: number;
   message: string;

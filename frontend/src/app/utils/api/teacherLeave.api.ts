@@ -36,8 +36,8 @@ export const teacherLeaveApi = {
     if (filters?.page) params.page = filters.page;
     if (filters?.size) params.size = filters.size;
     if (filters?.status) params.status = filters.status;
-    if (filters?.startDate) params.startDate = filters.startDate;  // ✅ Thêm
-    if (filters?.endDate) params.endDate = filters.endDate;        // ✅ Thêm
+    if (filters?.startDate) params.startDate = filters.startDate;
+    if (filters?.endDate) params.endDate = filters.endDate;
 
     logRequest('GET', '/teacher-leaves', params);
 
@@ -191,17 +191,15 @@ export const teacherLeaveApi = {
   },
 
   // 👉 THÊM MỚI: Hủy affected session
-  // src/utils/api/teacherLeave.api.ts
   async cancelAffectedSession(affectedSessionId: number): Promise<ApiResponse> {
     logRequest('PUT', `/teacher-leaves/affected-sessions/${affectedSessionId}/cancel`);
     console.log('Calling cancelAffectedSession with id:', affectedSessionId);
     try {
       const response: any = await axios.put(`/teacher-leaves/affected-sessions/${affectedSessionId}/cancel`);
-      logResponse('PUT', `/teacher-leaves/affected-sessions/${affectedSessionId}/cancel`, undefined);
+      logResponse('PUT', `/teacher-leaves/affected-sessions/${affectedSessionId}/cancel`, response); // ✅ Sửa
       console.log('Cancel response:', response);
       return response;
     } catch (error: any) {
-      // Log chi tiết lỗi từ backend
       console.error('Cancel session error:', {
         status: error.response?.status,
         message: error.response?.data?.message,
@@ -209,5 +207,30 @@ export const teacherLeaveApi = {
       });
       throw error;
     }
+  },
+
+  // ✅ Assign teacher to session (chuyển từ PENDING → ASSIGNED)
+  async assignTeacherToSession(affectedSessionId: number, replacementTeacherId: number): Promise<ApiResponse> {
+    logRequest('PUT', `/teacher-leaves/affected-sessions/${affectedSessionId}/assign`, undefined, {
+      replacementTeacherId
+    });
+    const response: any = await axios.put(`/teacher-leaves/affected-sessions/${affectedSessionId}/assign`, {
+      replacementTeacherId
+    });
+    logResponse('PUT', `/teacher-leaves/affected-sessions/${affectedSessionId}/assign`, response);
+    return response;
+  },
+
+  // ✅ Resend invitation to teacher (khi DECLINED, admin muốn gửi lại cho cùng GV)
+  async resendInvitation(affectedSessionId: number): Promise<ApiResponse> {
+    logRequest('POST', `/teacher-leaves/affected-sessions/${affectedSessionId}/resend`);
+    const response: any = await axios.post(`/teacher-leaves/affected-sessions/${affectedSessionId}/resend`);
+    return response;
+  },
+
+  async getSessionHistory(affectedSessionId: number): Promise<any[]> {
+    logRequest('GET', `/teacher-leaves/affected-sessions/${affectedSessionId}/history`);
+    const response: any = await axios.get(`/teacher-leaves/affected-sessions/${affectedSessionId}/history`);
+    return response.data || [];
   },
 };

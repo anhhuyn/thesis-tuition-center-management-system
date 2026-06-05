@@ -1,18 +1,21 @@
 // src/app/pages/LeaveRequestDetail.tsx
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ChevronRight, Mail, Quote, CheckCircle2, XCircle, CalendarDays, 
+import {
+  ChevronRight, Mail, Quote, CheckCircle2, XCircle, CalendarDays,
   Clock3, BookOpen, Phone, School, Badge,
   Sparkles, UserPlus, History, Check, X, Calendar, AlertCircle,
-  MapPin, Users, Award, MessageSquare, Clock, FileText, User, Loader2
+  MapPin, Users, Award, MessageSquare, Clock, FileText, User, Loader2,
+  RefreshCw
 } from 'lucide-react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import { teacherLeaveApi } from '../../../utils/api/teacherLeave.api';
-import type { TeacherLeave, PreviewAffectedSessionResponse } from '../../../utils/types/teacherLeave'; 
+import type { TeacherLeave, PreviewAffectedSessionResponse, AvailableReplacementTeacher } from '../../../utils/types/teacherLeave';
 import { LeaveApprovalModal } from '../../../components/adminComponents/leaves/LeaveApprovalModal';
+import { SessionsSummary } from '../../../components/adminComponents/leaves/SessionsSummary';
+import { SessionCard } from '../../../components/adminComponents/leaves/SessionCard';
 
 // Helper function để clean display name (copy từ LeaveDetailModal)
 const cleanDisplayName = (name: string): string => {
@@ -53,6 +56,7 @@ const formatTime = (timeStr?: string) => {
 };
 
 export const LeaveRequestDetail = () => {
+  console.log('🎨 [Render] LeaveRequestDetail re-render at:', new Date().toLocaleTimeString());
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -64,6 +68,13 @@ export const LeaveRequestDetail = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableTeachers, setAvailableTeachers] = useState<Record<number, any[]>>({});
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [availableTeachersMap, setAvailableTeachersMap] = useState<Record<number, AvailableReplacementTeacher[]>>({});
+  const [loadingTeachersMap, setLoadingTeachersMap] = useState<Record<number, boolean>>({});
+  const [assigningMap, setAssigningMap] = useState<Record<number, boolean>>({});
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+
+  const { setAlert } = useOutletContext<any>()
 
   const handleBack = () => {
     navigate('/admin/teacher/leave');
@@ -72,19 +83,19 @@ export const LeaveRequestDetail = () => {
   // Parse reason to separate teacher reason and admin note
   const parseReason = (reason: string) => {
     if (!reason) return { teacherReason: 'Không có lý do cụ thể', adminNote: null };
-    
+
     const adminPattern = /\[(ADMIN|Admin|admin)\]\s*:\s*(.*)$/i;
     const match = reason.match(adminPattern);
-    
+
     if (match) {
       const adminNote = match[2].trim();
       const teacherReason = reason.replace(adminPattern, '').trim();
-      return { 
-        teacherReason: teacherReason || 'Không có lý do cụ thể', 
-        adminNote 
+      return {
+        teacherReason: teacherReason || 'Không có lý do cụ thể',
+        adminNote
       };
     }
-    
+
     return { teacherReason: reason, adminNote: null };
   };
 
@@ -109,13 +120,25 @@ export const LeaveRequestDetail = () => {
       });
 
       // Merge dữ liệu: lấy chi tiết từ detailSessions, trạng thái từ statusMap
-      const merged = detailSessions.map((detail: any) => {
+      const merged = detailSessions.map((detail: any, index: number) => {
         const statusData = statusMap.get(detail.sessionId);
+
+        // ✅ Lấy affectedSessionId từ statusData (API trả về) hoặc từ detail
+        const affectedSessionId = statusData?.id || detail.affectedSessionId || detail.id;
+
+        console.log(`🟢 Session ${detail.sessionId}: affectedSessionId = ${affectedSessionId}`);
+
         return {
           ...detail,
+          id: affectedSessionId,  // Đảm bảo có id
+          affectedSessionId: affectedSessionId,  // ✅ Thêm field này
           status: statusData?.status || detail.status || 'PENDING',
           replacementTeacherName: statusData?.replacementTeacherName || detail.replacementTeacherName || null,
           replacementTeacherId: statusData?.replacementTeacherId || detail.replacementTeacherId || null,
+          assignedAt: statusData?.assignedAt || detail.assignedAt,
+          respondedAt: statusData?.respondedAt || detail.respondedAt,
+          declineReason: statusData?.declineReason || detail.declineReason,
+          sessionHistory: statusData?.sessionHistory || detail.sessionHistory || [],
           // Thêm các field cần thiết cho UI
           sessionId: detail.sessionId,
           sessionDate: detail.sessionDate,
@@ -134,11 +157,14 @@ export const LeaveRequestDetail = () => {
     } catch (error) {
       console.error('Failed to fetch sessions:', error);
       // Fallback: chỉ dùng dữ liệu từ leave.affectedSessions
-      const fallbackSessions = (leaveData.affectedSessions || []).map((session: any) => ({
+      const fallbackSessions = (leaveData.affectedSessions || []).map((session: any, index: number) => ({
         ...session,
+        id: session.id || index,
+        affectedSessionId: session.id || index,  // ✅ Thêm fallback
         subjectName: cleanDisplayName(session.subjectName),
         className: cleanDisplayName(session.className || ''),
         roomName: cleanDisplayName(session.roomName || ''),
+        status: session.status || 'PENDING',
       }));
       setMergedSessions(fallbackSessions);
       return fallbackSessions;
@@ -148,36 +174,46 @@ export const LeaveRequestDetail = () => {
   }, []);
 
   const fetchLeaveDetail = useCallback(async () => {
+    // ✅ Nếu đang fetch thì bỏ qua
+    if (isFetchingRef.current) {
+      console.log('⏭️ [fetchLeaveDetail] Bỏ qua - đang fetch dữ liệu');
+      return;
+    }
     if (!id) return;
+    isFetchingRef.current = true;  // ✅ Đánh dấu đang fetch
+    console.log('📞 [fetchLeaveDetail] Bắt đầu fetch...');
     try {
       setLoading(true);
       setError(null);
-      
+
       const data = await teacherLeaveApi.getById(Number(id));
+      console.log('📞 [fetchLeaveDetail] Nhận dữ liệu:', data?.id);
       setLeave(data);
-      
-      // ✅ Gọi merge sessions để có trạng thái mới nhất
+
       await fetchAndMergeSessions(data);
-      
+      console.log('📞 [fetchLeaveDetail] Hoàn tất');
+
     } catch (err: any) {
-      console.error('Fetch error:', err);
+      console.error('❌ Fetch error:', err);
       setError(err.response?.data?.message || 'Không thể tải chi tiết đơn nghỉ');
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;  // ✅ Đánh dấu đã fetch xong
+      console.log('📞 [fetchLeaveDetail] Kết thúc fetch');
     }
   }, [id, fetchAndMergeSessions]);
 
   useEffect(() => {
+    console.log('🎬 [Mount] Component mounted, fetching initial data...');
     fetchLeaveDetail();
-  }, [fetchLeaveDetail]);
+  }, []);
 
-  const fetchAvailableTeachers = async (sessionId: number) => {
+  const fetchAvailableTeachers = async (affectedSessionId: number) => {
     if (!leave || leave.status !== 'PENDING') return;
-    
     try {
       setSuggestionsLoading(true);
-      const teachers = await teacherLeaveApi.previewAvailableTeachers(sessionId, leave.id);
-      setAvailableTeachers(prev => ({ ...prev, [sessionId]: teachers }));
+      const teachers = await teacherLeaveApi.previewAvailableTeachers(affectedSessionId, leave.id);
+      setAvailableTeachers(prev => ({ ...prev, [affectedSessionId]: teachers }));
     } catch (err) {
       console.error('Failed to fetch available teachers:', err);
     } finally {
@@ -194,7 +230,7 @@ export const LeaveRequestDetail = () => {
 
   const getLeaveTypeLabel = () => {
     if (!leave) return '';
-    switch(leave.leaveType) {
+    switch (leave.leaveType) {
       case 'SICK': return 'Nghỉ ốm';
       case 'ANNUAL': return 'Nghỉ phép năm';
       case 'UNPAID': return 'Nghỉ không lương';
@@ -205,7 +241,7 @@ export const LeaveRequestDetail = () => {
 
   const getLeaveTypeColor = () => {
     if (!leave) return 'bg-primary/5 text-primary';
-    switch(leave.leaveType) {
+    switch (leave.leaveType) {
       case 'SICK': return 'bg-blue-100 text-blue-700';
       case 'ANNUAL': return 'bg-emerald-100 text-emerald-700';
       case 'UNPAID': return 'bg-amber-100 text-amber-700';
@@ -214,12 +250,30 @@ export const LeaveRequestDetail = () => {
     }
   };
 
+  const isFetchingRef = useRef<boolean>(false);
+  const handleManualRefresh = async () => {
+    if (isRefreshing) return;
+
+    setIsRefreshing(true);
+    console.log('🔄 [Manual Refresh] Người dùng yêu cầu refresh...');
+
+    try {
+      await fetchLeaveDetail();
+      setAlert?.({ type: 'success', message: 'Đã cập nhật trạng thái mới nhất' });
+    } catch (error) {
+      console.error('❌ [Manual Refresh] Lỗi:', error);
+      setAlert?.({ type: 'error', message: 'Không thể cập nhật dữ liệu' });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const getStatusBadge = () => {
     if (!leave) return null;
-    switch(leave.status) {
+    switch (leave.status) {
       case 'APPROVED':
         return (
-          <motion.span 
+          <motion.span
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-sm"
@@ -230,7 +284,7 @@ export const LeaveRequestDetail = () => {
         );
       case 'REJECTED':
         return (
-          <motion.span 
+          <motion.span
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-sm"
@@ -241,7 +295,7 @@ export const LeaveRequestDetail = () => {
         );
       default:
         return (
-          <motion.span 
+          <motion.span
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-sm"
@@ -252,56 +306,127 @@ export const LeaveRequestDetail = () => {
         );
     }
   };
+  const handleAssignTeacher = async (affectedSessionId: number, teacherId: number) => {
+    console.log('🎯 [AssignTeacher] Bắt đầu:', { affectedSessionId, teacherId });
+    setAssigningMap(prev => ({ ...prev, [affectedSessionId]: true }));
 
-  // ✅ Helper để lấy config cho từng session status
-  const getSessionStatusConfig = (status: string) => {
-    switch (status) {
-      case 'RESOLVED':
-        return {
-          label: 'Đã phân công',
-          bg: 'bg-emerald-50',
-          border: 'border-emerald-200',
-          icon: CheckCircle2,
-          iconColor: 'text-emerald-600'
-        };
-      case 'PENDING':
-        return {
-          label: 'Chờ phản hồi',
-          bg: 'bg-amber-50',
-          border: 'border-amber-200',
-          icon: Clock,
-          iconColor: 'text-amber-500'
-        };
-      case 'SKIPPED':
-        return {
-          label: 'Đã hủy',
-          bg: 'bg-gray-50',
-          border: 'border-gray-200',
-          icon: XCircle,
-          iconColor: 'text-gray-500'
-        };
-      default:
-        return {
-          label: 'Đang xử lý',
-          bg: 'bg-gray-50',
-          border: 'border-gray-200',
-          icon: Clock3,
-          iconColor: 'text-gray-500'
-        };
+    try {
+      await teacherLeaveApi.assignTeacherToSession(affectedSessionId, teacherId);
+      console.log('✅ [AssignTeacher] Thành công');
+      setAlert?.({ type: 'success', message: 'Đã phân công giáo viên dạy thay' });
+      await fetchLeaveDetail();
+    } catch (error: any) {
+      console.error('❌ [AssignTeacher] Lỗi:', error);
+      setAlert?.({ type: 'error', message: error.response?.data?.message || 'Phân công thất bại' });
+    } finally {
+      setAssigningMap(prev => ({ ...prev, [affectedSessionId]: false }));
+    }
+  };
+  const handleCancelSession = async (affectedSessionId: number) => {
+    if (!confirm('Bạn có chắc chắn muốn hủy buổi học này?')) return;
+    try {
+      await teacherLeaveApi.cancelAffectedSession(affectedSessionId);
+      await fetchLeaveDetail();
+      setAlert?.({ type: 'success', message: 'Đã hủy buổi học' });
+    } catch (error: any) {
+      setAlert?.({ type: 'error', message: error.message || 'Hủy thất bại' });
     }
   };
 
+  // Trong LeaveRequestDetail.tsx, thêm useEffect để theo dõi thay đổi status
+  const prevStatusRef = useRef<Record<number, string>>({});
+
+  useEffect(() => {
+    // So sánh status cũ và mới của từng session
+    mergedSessions.forEach(session => {
+      const sessionId = session.affectedSessionId || session.id;
+      const oldStatus = prevStatusRef.current[sessionId];
+      const newStatus = session.status;
+
+      if (oldStatus && oldStatus !== newStatus) {
+        // Status thay đổi, hiển thị notification
+        if (newStatus === 'ASSIGNED') {
+          setAlert?.({
+            type: 'info',
+            message: `Đã gửi yêu cầu dạy thay cho buổi ${session.subjectName}. Đang chờ phản hồi.`
+          });
+        } else if (newStatus === 'DECLINED') {
+          setAlert?.({
+            type: 'warning',
+            message: `Giáo viên ${session.replacementTeacherName} đã từ chối dạy thay buổi ${session.subjectName}. Vui lòng chọn giáo viên khác!`
+          });
+        } else if (newStatus === 'RESOLVED') {
+          setAlert?.({
+            type: 'success',
+            message: `${session.replacementTeacherName} đã nhận dạy thay buổi ${session.subjectName}.`
+          });
+        }
+      }
+
+      // Cập nhật ref
+      prevStatusRef.current[sessionId] = newStatus;
+    });
+  }, [mergedSessions, setAlert]);
+
+
+  const handleGetAvailableTeachers = async (affectedSessionId: number) => {
+    console.log('🔵 handleGetAvailableTeachers called with affectedSessionId:', affectedSessionId);
+    console.log('🔵 Type of affectedSessionId:', typeof affectedSessionId);
+
+    // ✅ Validation
+    if (!affectedSessionId || isNaN(affectedSessionId) || affectedSessionId <= 0) {
+      console.error('❌ Invalid affectedSessionId:', affectedSessionId);
+      setAlert?.({ type: 'error', message: 'ID session không hợp lệ' });
+      return;
+    }
+
+    setLoadingTeachersMap(prev => ({ ...prev, [affectedSessionId]: true }));
+    try {
+      const teachers = await teacherLeaveApi.getAvailableReplacementTeachers(affectedSessionId);
+      console.log(`✅ Got ${teachers.length} teachers for session ${affectedSessionId}`);
+      setAvailableTeachersMap(prev => ({ ...prev, [affectedSessionId]: teachers }));
+    } catch (error: any) {
+      console.error('Failed to fetch teachers:', error);
+
+      // Xử lý lỗi 403 cụ thể
+      if (error.response?.status === 403) {
+        setAlert?.({ type: 'error', message: 'Bạn không có quyền thực hiện thao tác này. Vui lòng đăng nhập với tài khoản Admin.' });
+      } else {
+        setAlert?.({ type: 'error', message: error.response?.data?.message || 'Không thể tải danh sách giáo viên' });
+      }
+    } finally {
+      setLoadingTeachersMap(prev => ({ ...prev, [affectedSessionId]: false }));
+    }
+  };
+  const handleCancelAssignment = async (affectedSessionId: number) => {
+    console.log('🎯 [CancelAssignment] Bắt đầu:', affectedSessionId);
+    if (!confirm('Bạn có chắc chắn muốn hủy phân công này? Giáo viên sẽ không nhận được yêu cầu dạy thay.')) {
+      console.log('❌ [CancelAssignment] Người dùng hủy');
+      return;
+    }
+
+    try {
+      // TODO: Gọi API hủy phân công khi BE có
+      // await teacherLeaveApi.cancelAssignment(affectedSessionId);
+      console.log('✅ [CancelAssignment] Thành công (mock)');
+      await fetchLeaveDetail();
+      setAlert?.({ type: 'success', message: 'Đã hủy phân công' });
+    } catch (error: any) {
+      console.error('❌ [CancelAssignment] Lỗi:', error);
+      setAlert?.({ type: 'error', message: error.message || 'Hủy phân công thất bại' });
+    }
+  };
   const { teacherReason, adminNote } = parseReason(leave?.reason || '');
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center"
         >
-          <motion.div 
+          <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
             className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto"
@@ -315,17 +440,17 @@ export const LeaveRequestDetail = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           className="text-center"
         >
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <p className="text-red-500 text-lg font-semibold">{error}</p>
-          <motion.button 
+          <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={handleBack} 
+            onClick={handleBack}
             className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all"
           >
             Quay lại
@@ -341,16 +466,16 @@ export const LeaveRequestDetail = () => {
     <div className="min-h-screen bg-gray-50 font-sans antialiased">
       <main className="max-w-[1440px] mx-auto px-12 py-8">
         {/* Header Section - Giữ nguyên */}
-        <motion.section 
+        <motion.section
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           className="mb-12"
         >
           <nav className="flex items-center gap-2 text-sm text-gray-500 mb-4 font-medium">
-            <motion.span 
+            <motion.span
               whileHover={{ x: -5 }}
-              className="hover:text-indigo-600 cursor-pointer transition-colors" 
+              className="hover:text-indigo-600 cursor-pointer transition-colors"
               onClick={handleBack}
             >
               Quản lý lịch nghỉ
@@ -368,42 +493,59 @@ export const LeaveRequestDetail = () => {
                 <span className="text-gray-400 text-sm">Mã đơn: #{leave.id}</span>
               </div>
             </div>
-            {leave.status === 'PENDING' && (
-              <motion.div 
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className="flex items-center gap-3"
+            <div className="flex items-center gap-3">
+              {/* ✅ THÊM NÚT REFRESH */}
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleManualRefresh}
+                disabled={isRefreshing}
+                className="px-4 py-2 rounded-xl bg-white border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-all flex items-center gap-2 shadow-sm disabled:opacity-50"
               >
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={async () => {
-                    if (window.confirm('Bạn có chắc chắn muốn từ chối đơn này?')) {
-                      try {
-                        await teacherLeaveApi.approve(leave.id, { action: 'REJECTED' });
-                        fetchLeaveDetail();
-                      } catch (err: any) {
-                        setError(err.message || 'Từ chối thất bại');
+                {isRefreshing ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : (
+                  <RefreshCw size={18} />
+                )}
+                {isRefreshing ? 'Đang cập nhật...' : 'Làm mới'}
+              </motion.button>
+              {leave.status === 'PENDING' && (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="flex items-center gap-3"
+                >
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={async () => {
+                      if (window.confirm('Bạn có chắc chắn muốn từ chối đơn này?')) {
+                        try {
+                          await teacherLeaveApi.approve(leave.id, { action: 'REJECTED' });
+                          fetchLeaveDetail();
+                        } catch (err: any) {
+                          setError(err.message || 'Từ chối thất bại');
+                        }
                       }
-                    }
-                  }}
-                  className="px-6 py-3 rounded-xl border-2 border-red-200 bg-white text-red-600 font-semibold hover:bg-red-50 hover:border-red-300 transition-all flex items-center gap-2 shadow-sm"
-                >
-                  <X className="w-5 h-5" />
-                  Từ chối
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setApprovalModalOpen(true)}
-                  className="px-8 py-3 rounded-xl bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-200 hover:shadow-xl transition-all flex items-center gap-2"
-                >
-                  <Check className="w-5 h-5" />
-                  Phê duyệt
-                </motion.button>
-              </motion.div>
-            )}
+                    }}
+                    className="px-6 py-3 rounded-xl border-2 border-red-200 bg-white text-red-600 font-semibold hover:bg-red-50 hover:border-red-300 transition-all flex items-center gap-2 shadow-sm"
+                  >
+                    <X className="w-5 h-5" />
+                    Từ chối
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setApprovalModalOpen(true)}
+                    className="px-8 py-3 rounded-xl bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-200 hover:shadow-xl transition-all flex items-center gap-2"
+                  >
+                    <Check className="w-5 h-5" />
+                    Phê duyệt
+                  </motion.button>
+                </motion.div>
+              )}
+            </div>
           </div>
         </motion.section>
 
@@ -412,7 +554,7 @@ export const LeaveRequestDetail = () => {
           {/* Left Column */}
           <div className="xl:col-span-2 space-y-8">
             {/* Teacher Profile Card - Giữ nguyên */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
@@ -450,7 +592,7 @@ export const LeaveRequestDetail = () => {
             </motion.div>
 
             {/* Leave Details Card - Giữ nguyên */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.2 }}
@@ -489,9 +631,9 @@ export const LeaveRequestDetail = () => {
                   <p className="text-3xl font-black text-indigo-600">{calculateTotalDays()} <span className="text-sm font-medium">ngày</span></p>
                 </div>
               </div>
-              
+
               {/* Reason Section - Giữ nguyên */}
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}
@@ -503,7 +645,7 @@ export const LeaveRequestDetail = () => {
                     "{teacherReason}"
                   </p>
                   {adminNote && (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.4 }}
@@ -524,104 +666,55 @@ export const LeaveRequestDetail = () => {
               </motion.div>
             </motion.div>
 
-            {/* ✅ FIX: Affected Classes Section - Hiển thị đúng trạng thái */}
-            <motion.div 
+            {/* ✅ FIX: Affected Classes Section - NEW VERSION with SessionCard */}
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.3 }}
               className="space-y-4"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-3">
                 <h3 className="text-xl font-bold flex items-center gap-2 text-gray-900">
                   <div className="w-1.5 h-6 bg-orange-500 rounded-full"></div>
                   Buổi học bị ảnh hưởng
-                  <span className="ml-2 text-sm font-normal text-gray-500">({mergedSessions.length} buổi)</span>
+                  <span className="ml-2 text-sm font-normal text-gray-500">
+                    ({mergedSessions.length} buổi)
+                  </span>
                 </h3>
-                {loadingSessions && <Loader2 size={16} className="animate-spin text-indigo-500" />}
               </div>
-              
+
+              {/* ✅ Summary Stats */}
+              <SessionsSummary sessions={mergedSessions} />
+
+              {/* Loading state for sessions */}
+              {loadingSessions && (
+                <div className="flex justify-center py-8">
+                  <Loader2 size={24} className="animate-spin text-indigo-500" />
+                </div>
+              )}
+
+              {/* Session Cards */}
               <div className="space-y-3">
                 <AnimatePresence>
                   {mergedSessions.length > 0 ? (
-                    mergedSessions.map((session, idx) => {
-                      const statusConfig = getSessionStatusConfig(session.status);
-                      const StatusIcon = statusConfig.icon;
-                      const cleanReplacementTeacher = cleanDisplayName(session.replacementTeacherName || '');
-                      
-                      return (
-                        <motion.div 
-                          key={session.sessionId || idx}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: idx * 0.1 }}
-                          whileHover={{ x: 4 }}
-                          className={`bg-white rounded-2xl p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-l-4 transition-all shadow-sm ${statusConfig.border}`}
-                          style={{ borderLeftColor: `var(--${statusConfig.iconColor})` }}
-                        >
-                          <div className="flex items-center gap-5">
-                            <div className={`w-16 h-16 rounded-xl flex flex-col items-center justify-center shadow-sm ${statusConfig.bg}`}>
-                              <span className={`text-xs font-bold ${statusConfig.iconColor}`}>
-                                {new Date(session.sessionDate).toLocaleDateString('vi-VN', { weekday: 'short' }) || 'Thứ'}
-                              </span>
-                              <span className={`text-xl font-black ${statusConfig.iconColor}`}>
-                                {new Date(session.sessionDate).getDate() || ''}
-                              </span>
-                            </div>
-                            <div>
-                              <p className="font-bold text-gray-900 text-lg">{session.subjectName}</p>
-                              <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 mt-2">
-                                <span className="flex items-center gap-1.5">
-                                  <Clock3 className="w-3.5 h-3.5 text-indigo-400" />
-                                  {formatTime(session.startTime)} - {formatTime(session.endTime)}
-                                </span>
-                                <span className="flex items-center gap-1.5">
-                                  <MapPin className="w-3.5 h-3.5 text-indigo-400" />
-                                  {session.roomName || 'N/A'}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="flex flex-col items-end gap-2">
-                            {/* Status Badge */}
-                            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${statusConfig.bg} ${statusConfig.iconColor}`}>
-                              <StatusIcon size={12} />
-                              {statusConfig.label}
-                            </div>
-                            
-                            {/* Replacement Teacher Info */}
-                            {session.status === 'RESOLVED' && cleanReplacementTeacher && cleanReplacementTeacher !== 'Chưa cập nhật' && (
-                              <motion.div 
-                                initial={{ scale: 0.9, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                className="flex items-center gap-2"
-                              >
-                                <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-xs ring-2 ring-white shadow-sm">
-                                  {cleanReplacementTeacher.charAt(0)}
-                                </div>
-                                <span className="text-xs font-medium text-emerald-700">
-                                  {cleanReplacementTeacher}
-                                </span>
-                              </motion.div>
-                            )}
-                            
-                            {/* Pending indicator */}
-                            {session.status === 'PENDING' && (
-                              <motion.span 
-                                initial={{ scale: 0.9, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                className="text-[10px] text-amber-600 flex items-center gap-1"
-                              >
-                                <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                                Đang chờ phản hồi
-                              </motion.span>
-                            )}
-                          </div>
-                        </motion.div>
-                      );
-                    })
+                    mergedSessions.map((session, idx) => (
+                      <SessionCard
+                        key={session.affectedSessionId || session.id || idx}
+                        session={session}
+                        index={idx}
+                        availableTeachers={availableTeachersMap[session.affectedSessionId || session.id] || []}
+                        isLoadingTeachers={loadingTeachersMap[session.affectedSessionId || session.id] || false}
+                        isAssigning={assigningMap[session.affectedSessionId || session.id] || false}  // ✅ Thêm
+                        onAssignTeacher={handleAssignTeacher}
+                        onCancelSession={handleCancelSession}
+                        onResendRequest={undefined}  // Có thể implement sau
+                        onCancelAssignment={handleCancelAssignment}  // ✅ Thêm nếu có
+                        onGetAvailableTeachers={handleGetAvailableTeachers}
+                        onRefresh={handleManualRefresh}
+                      />
+                    ))
                   ) : (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       className="bg-white rounded-2xl p-8 text-center text-gray-500 border-2 border-dashed border-gray-200"
@@ -639,7 +732,7 @@ export const LeaveRequestDetail = () => {
           <div className="space-y-8">
             {/* AI Suggestions - Giữ nguyên */}
             {leave.status === 'PENDING' && mergedSessions.length > 0 && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.4, delay: 0.2 }}
@@ -647,7 +740,7 @@ export const LeaveRequestDetail = () => {
               >
                 <div className="absolute -top-6 -right-6 w-24 h-24 bg-indigo-50 rounded-full blur-2xl"></div>
                 <div className="flex items-center gap-2 mb-4">
-                  <motion.div 
+                  <motion.div
                     whileHover={{ rotate: 360 }}
                     transition={{ duration: 0.5 }}
                     className="w-8 h-8 rounded-xl bg-amber-400 flex items-center justify-center"
@@ -661,7 +754,7 @@ export const LeaveRequestDetail = () => {
                 </p>
                 <div className="space-y-3">
                   {mergedSessions.slice(0, 2).map((session, idx) => (
-                    <motion.div 
+                    <motion.div
                       key={idx}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -680,10 +773,10 @@ export const LeaveRequestDetail = () => {
                             <p className="text-[10px] text-indigo-600 font-semibold">Tiết {formatTime(session.startTime)} - {formatTime(session.endTime)}</p>
                           </div>
                         </div>
-                        <motion.button 
+                        <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
-                          onClick={() => fetchAvailableTeachers(session.sessionId)}
+                          onClick={() => fetchAvailableTeachers(session.affectedSessionId || session.id)}
                           className="w-8 h-8 rounded-lg bg-gray-100 text-gray-500 group-hover:bg-indigo-600 group-hover:text-white transition-all flex items-center justify-center shadow-sm"
                           disabled={suggestionsLoading}
                         >
@@ -697,7 +790,7 @@ export const LeaveRequestDetail = () => {
             )}
 
             {/* Timeline Section - Giữ nguyên */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.3 }}
@@ -711,8 +804,8 @@ export const LeaveRequestDetail = () => {
               </div>
               <div className="space-y-6 relative">
                 <div className="absolute left-3 top-3 bottom-3 w-0.5 bg-gray-200"></div>
-                
-                <motion.div 
+
+                <motion.div
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.4 }}
@@ -730,17 +823,16 @@ export const LeaveRequestDetail = () => {
                     </time>
                   </div>
                 </motion.div>
-                
+
                 {leave.status !== 'PENDING' && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.5 }}
                     className="relative pl-9"
                   >
-                    <div className={`absolute left-0 top-0.5 w-6 h-6 rounded-full border-4 border-white shadow-md flex items-center justify-center ${
-                      leave.status === 'APPROVED' ? 'bg-emerald-500' : 'bg-red-500'
-                    }`}>
+                    <div className={`absolute left-0 top-0.5 w-6 h-6 rounded-full border-4 border-white shadow-md flex items-center justify-center ${leave.status === 'APPROVED' ? 'bg-emerald-500' : 'bg-red-500'
+                      }`}>
                       {leave.status === 'APPROVED' ? (
                         <CheckCircle2 className="w-3 h-3 text-white" />
                       ) : (
@@ -750,8 +842,8 @@ export const LeaveRequestDetail = () => {
                     <div>
                       <p className="text-sm font-bold text-gray-900">{leave.status === 'APPROVED' ? 'Đơn được duyệt' : 'Đơn bị từ chối'}</p>
                       <p className="text-xs text-gray-500 mt-1">
-                        {leave.status === 'APPROVED' 
-                          ? `Đơn xin nghỉ đã được phê duyệt bởi ${leave.approverName || 'quản trị viên'}.` 
+                        {leave.status === 'APPROVED'
+                          ? `Đơn xin nghỉ đã được phê duyệt bởi ${leave.approverName || 'quản trị viên'}.`
                           : 'Đơn xin nghỉ không được chấp thuận.'}
                       </p>
                       {leave.approvedAt && (
@@ -763,9 +855,9 @@ export const LeaveRequestDetail = () => {
                     </div>
                   </motion.div>
                 )}
-                
+
                 {leave.status === 'PENDING' && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.5 }}
@@ -794,7 +886,7 @@ export const LeaveRequestDetail = () => {
             </motion.div>
 
             {/* Quick Stats Card - Giữ nguyên */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.4 }}

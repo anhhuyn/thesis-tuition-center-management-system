@@ -6,17 +6,18 @@ import {
 import { subjectApi } from '../../utils/api';
 import { PieChartIcon, TrendingUp } from 'lucide-react';
 
-// Import Highcharts để làm biểu đồ tròn 3D
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
 import highcharts3d from 'highcharts/highcharts-3d';
 
-// Kích hoạt module 3D cho Highcharts (Đã sửa lỗi is not a function)
+// Kích hoạt module 3D
 if (typeof Highcharts === 'object') {
-    if (typeof highcharts3d === 'function') {
-        highcharts3d(Highcharts);
-    } else if (highcharts3d && typeof (highcharts3d as any).default === 'function') {
-        (highcharts3d as any).default(Highcharts);
+    const initialize3d = highcharts3d as any;
+    
+    if (typeof initialize3d === 'function') {
+        initialize3d(Highcharts);
+    } else if (initialize3d && typeof initialize3d.default === 'function') {
+        initialize3d.default(Highcharts);
     }
 }
 
@@ -31,7 +32,6 @@ const revenueData = [
     { month: 'Th5', revenue: 63, students: 355 }
 ];
 
-// Bảng màu xanh biển đổ từ đậm đến nhạt giống hệt ảnh mẫu
 const bluePalette = ['#224D7A', '#417BB9', '#A8C7E5', '#7BB0DF'];
 
 type CustomTooltipProps = {
@@ -79,14 +79,13 @@ export function ChartsSection() {
         subjectApi.getStatisticsLevel()
             .then(res => {
                 const raw = res;
-                const total = raw.reduce((sum: number, item: any) => sum + item.total, 0) || 1;
 
                 // Map dữ liệu từ API về cấu trúc Highcharts cần
                 const data = raw.map((item: any) => ({
                     name: item.level,
                     y: item.total,
-                    sliced: true,       // Tách rời miếng bánh ra ngoài
-                    slicedOffset: 12    // Khoảng cách tách rời giống mẫu
+                    sliced: true,    
+                    slicedOffset: 12    
                 }));
 
                 setLevelData(data);
@@ -94,14 +93,13 @@ export function ChartsSection() {
             .catch(console.error);
     }, []);
 
-    // Cấu hình biểu đồ tròn 3D cho Highcharts
     const pie3dOptions: Highcharts.Options = {
         chart: {
             type: 'pie',
             backgroundColor: 'transparent',
             options3d: {
                 enabled: true,
-                alpha: 60, // Độ nghiêng góc nhìn nằm xoài xuống giống hình mẫu
+                alpha: 60, 
                 beta: 0
             },
             height: '240px',
@@ -110,24 +108,24 @@ export function ChartsSection() {
         title: { text: undefined },
         accessibility: { enabled: false },
         credits: { enabled: false },
-        colors: bluePalette, // Áp dụng bảng màu tương tự hình mẫu
+        colors: bluePalette, 
         plotOptions: {
             pie: {
                 allowPointSelect: true,
                 cursor: 'pointer',
-                depth: 32, // Chiều dày của khối 3D tạo cảm giác nổi
+                depth: 32,
                 dataLabels: {
                     enabled: true,
-                    format: '{point.percentage:.0f}%', // Hiển thị % không lấy phần thập phân
-                    distance: -35, // Đẩy chữ số vào bên trong ruột miếng bánh
+                    format: '{point.percentage:.0f}%', 
+                    distance: -35, 
                     style: {
                         color: '#FFFFFF',
                         fontSize: '15px',
                         fontWeight: '600',
-                        textOutline: 'none' // Xóa viền đen của chữ mặc định
+                        textOutline: 'none' 
                     }
                 },
-                showInLegend: false // Tắt legend mặc định để dùng list legend Tailwind bên dưới
+                showInLegend: false 
             }
         },
         series: [{
@@ -141,7 +139,7 @@ export function ChartsSection() {
         <div className="w-full max-w-[1600px] mx-auto">
             <div className="grid lg:grid-cols-[2fr_1fr] gap-6 lg:gap-6">
                 
-                {/* 1. Biểu đồ đường (Giữ nguyên cấu trúc Recharts của bạn) */}
+                {/* Biểu đồ đường */}
                 <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
                     <div className="p-4">
                         <div className="mb-3">
@@ -194,7 +192,7 @@ export function ChartsSection() {
                     </div>
                 </div>
 
-                {/* 2. Biểu đồ tròn đã làm lại dạng 3D khối tách rời hoàn chỉnh */}
+                {/* Biểu đồ tròn*/}
                 <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
                     <div className="p-4">
                         <div className="mb-3">
@@ -213,7 +211,7 @@ export function ChartsSection() {
                         </div>
 
                         <div className="flex flex-col items-center gap-3">
-                            {/* Khối Highcharts 3D Pie */}
+                            {/* Highcharts */}
                             <div className="w-full h-[240px]">
                                 {levelData.length > 0 ? (
                                     <HighchartsReact highcharts={Highcharts} options={pie3dOptions} />
@@ -224,7 +222,7 @@ export function ChartsSection() {
                                 )}
                             </div>
 
-                            {/* Legend danh sách tùy chỉnh bên dưới */}
+                            {/* Legend */}
                             <div className="w-full space-y-1">
                                 {levelData.map((level, i) => (
                                     <div 

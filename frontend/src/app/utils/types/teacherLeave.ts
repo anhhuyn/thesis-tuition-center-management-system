@@ -1,3 +1,4 @@
+//src/app/utils/types/teacherLeave.ts
 export interface TeacherAbsentResponse {
   leaveId: number
   teacherId: number
@@ -147,7 +148,23 @@ export interface SuggestedTeacher {
   name: string;
 }
 
-// src/types/teacherLeave.ts (cập nhật AffectedSession)
+export type SessionStatus = 
+  | 'PENDING'      // Chưa chọn giáo viên
+  | 'ASSIGNED'     // Đã chỉ định, chờ phản hồi
+  | 'DECLINED'     // Giáo viên từ chối
+  | 'RESOLVED'     // Đã chấp nhận
+  | 'SKIPPED';     // Hủy buổi học
+
+export interface SessionHistoryItem {
+  id?: number;
+  action: 'ASSIGNED' | 'ACCEPTED' | 'DECLINED' | 'SKIPPED' | 'REASSIGNED';
+  actorName: string;
+  actorRole: 'ADMIN' | 'TEACHER';
+  createdAt: string;
+  note?: string;
+  previousTeacherName?: string;
+  newTeacherName?: string;
+}
 
 export interface AffectedSession {
   id: number;
@@ -162,13 +179,22 @@ export interface AffectedSession {
   originalTeacherName?: string;  // Thêm field này
   replacementTeacherId?: number;
   replacementTeacherName?: string;
-  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED' | 'SKIPPED';  // Thêm 'ACCEPTED', 'REJECTED'
+  assignedAt?: string;
+  respondedAt?: string;
+  declineReason?: string;
+  status: SessionStatus;
+  sessionHistory?: SessionHistoryItem[];
   suggestedTeachers?: SuggestedTeacher[];
   date: string;
   className: string;
   room: string;
   roomName?: string;  // Thêm field này
   substituteTeacher?: string;
+}
+export interface TeacherReplacementResponse {
+  affectedSessionId: number;
+  response: 'ACCEPTED' | 'DECLINED';
+  reason?: string;
 }
 
 export interface PreviewAffectedSessionRequest {
@@ -243,7 +269,7 @@ export interface ReplacementSession {
   originalTeacherName: string;
   replacementTeacherId: number;
   replacementTeacherName: string;
-  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COMPLETED';
+  status: 'PENDING' | 'ASSIGNED' | 'ACCEPTED' | 'REJECTED' | 'COMPLETED';   
   reason?: string;
   createdAt: string;
   updatedAt: string;

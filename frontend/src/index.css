@@ -2622,8 +2622,9 @@ h1, h2, h3, h4, h5, h6, .heading-font {
   to {
     transform: scaleX(0);
   }
+}
 
-  @keyframes fadeIn {
+@keyframes fadeIn {
   from {
     opacity: 0;
     transform: translateY(6px);
@@ -2637,4 +2638,4 @@ h1, h2, h3, h4, h5, h6, .heading-font {
 .animate-fadeIn {
   animation: fadeIn 0.3s ease;
 }
-}
+

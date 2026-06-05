@@ -1,0 +1,275 @@
+/* Import fonts */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+/* CSS Variables - Color System */
+:root {
+  /* Primary Colors */
+  --primary: #4b41e1;
+  --primary-container: #645efb;
+  --primary-fixed: #e2dfff;
+  --primary-fixed-dim: #c3c0ff;
+  --on-primary: #ffffff;
+  --on-primary-fixed: #0f0069;
+  --on-primary-container: #fffbff;
+  --on-primary-fixed-variant: #3323cc;
+  
+  /* Secondary Colors */
+  --secondary: #515f74;
+  --secondary-container: #d5e3fc;
+  --secondary-fixed: #d5e3fc;
+  --secondary-fixed-dim: #b9c7df;
+  --on-secondary: #ffffff;
+  --on-secondary-fixed: #0d1c2e;
+  --on-secondary-container: #57657a;
+  --on-secondary-fixed-variant: #3a485b;
+  
+  /* Tertiary Colors */
+  --tertiary: #904900;
+  --tertiary-container: #b55d00;
+  --tertiary-fixed: #ffdcc5;
+  --tertiary-fixed-dim: #ffb783;
+  --on-tertiary: #ffffff;
+  --on-tertiary-container: #fffbff;
+  --on-tertiary-fixed: #301400;
+  --on-tertiary-fixed-variant: #703700;
+  
+  /* Surface Colors */
+  --surface: #f7f9fb;
+  --surface-bright: #f7f9fb;
+  --surface-dim: #d8dadc;
+  --surface-container: #eceef0;
+  --surface-container-low: #f2f4f6;
+  --surface-container-lowest: #ffffff;
+  --surface-container-high: #e6e8ea;
+  --surface-container-highest: #e0e3e5;
+  --surface-variant: #e0e3e5;
+  
+  /* Text Colors */
+  --on-surface: #191c1e;
+  --on-surface-variant: #464554;
+  --outline: #767586;
+  --outline-variant: #c7c4d7;
+  
+  /* Shadows */
+  --shadow-primary: 0 4px 12px rgba(75, 65, 225, 0.3);
+}
+
+/* Base styles for payroll module */
+.payroll-module {
+  font-family: 'Inter', sans-serif;
+  color: var(--on-surface);
+  background-color: var(--surface);
+}
+
+.payroll-module .font-headline {
+  font-family: 'Manrope', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* Glass Panel */
+.payroll-module .glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(75, 65, 225, 0.1);
+  box-shadow: 0 8px 32px rgba(75, 65, 225, 0.05);
+}
+
+/* Premium Card */
+.payroll-module .premium-card {
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.02);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border-radius: 1rem;
+}
+
+.payroll-module .premium-card:hover {
+  box-shadow: 0 12px 48px rgba(75, 65, 225, 0.08);
+  transform: translateY(-2px);
+  border-color: rgba(75, 65, 225, 0.15);
+}
+
+/* Gradient Button */
+.payroll-module .gradient-btn {
+  background: linear-gradient(135deg, #4b41e1 0%, #645efb 100%);
+  box-shadow: var(--shadow-primary);
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+  color: white;
+}
+
+.payroll-module .gradient-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(75, 65, 225, 0.4);
+}
+
+/* Tab Buttons */
+.payroll-module .tab-btn {
+  padding: 0.875rem 2rem;
+  border-radius: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--secondary);
+}
+
+.payroll-module .tab-btn:hover {
+  color: var(--primary);
+}
+
+.payroll-module .tab-active {
+  background: linear-gradient(135deg, #f0f0ff 0%, #e2dfff 100%);
+  color: #3323cc;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(75, 65, 225, 0.1);
+}
+
+/* Chart Bars */
+.payroll-module .chart-bar {
+  width: 8px;
+  background: #e2dfff;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.5s ease;
+}
+
+.payroll-module .chart-bar.active {
+  background: #4b41e1;
+}
+
+.payroll-module .chart-bar.tertiary {
+  background: #ffdcc5;
+}
+
+.payroll-module .chart-bar.tertiary-active {
+  background: #904900;
+}
+
+/* Form Elements */
+.payroll-module select,
+.payroll-module input {
+  background: var(--surface-container-low);
+  border: 1px solid transparent;
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+.payroll-module select:focus,
+.payroll-module input:focus {
+  outline: none;
+  border-color: rgba(75, 65, 225, 0.3);
+  box-shadow: 0 0 0 4px rgba(75, 65, 225, 0.1);
+}
+
+.payroll-module label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--secondary);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+/* Table Styles */
+.payroll-module .payroll-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.payroll-module .payroll-table thead {
+  background: var(--surface-container-low);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.payroll-module .payroll-table th {
+  padding: 1.25rem 1.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--secondary);
+  text-transform: uppercase;
+  text-align: left;
+}
+
+.payroll-module .payroll-table td {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.payroll-module .payroll-table tbody tr {
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+}
+
+.payroll-module .payroll-table tbody tr:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+/* Status Badges */
+.payroll-module .status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.payroll-module .status-draft {
+  background: var(--surface-container-high);
+  color: var(--secondary);
+}
+
+.payroll-module .status-waiting {
+  background: var(--tertiary-fixed);
+  color: var(--tertiary);
+}
+
+.payroll-module .status-confirmed {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.payroll-module .status-finalized {
+  background: var(--primary-fixed);
+  color: var(--primary);
+}
+
+/* Text Colors */
+.payroll-module .text-primary { color: #4b41e1; }
+.payroll-module .text-secondary { color: #515f74; }
+.payroll-module .text-tertiary { color: #904900; }
+.payroll-module .text-on-surface { color: #191c1e; }
+
+/* Background Colors */
+.payroll-module .bg-primary-fixed { background: #e2dfff; }
+.payroll-module .bg-tertiary-fixed { background: #ffdcc5; }
+.payroll-module .bg-surface-container-low { background: #f2f4f6; }
+.payroll-module .bg-surface-variant { background: #e0e3e5; }
+
+/* Animations */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.payroll-module .animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.payroll-module .border-primary {
+  border-color: #4b41e1;
+}
+
+.payroll-module .border-b-primary {
+  border-bottom-color: #4b41e1;
+}

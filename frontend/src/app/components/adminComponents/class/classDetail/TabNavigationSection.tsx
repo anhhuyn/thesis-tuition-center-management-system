@@ -6,6 +6,7 @@ import {
   FileText,
   CheckSquare,
   BarChart3,
+  BookOpen,
 } from "lucide-react";
 import type { Subject } from "../../../../utils/types/subject";
 
@@ -14,7 +15,7 @@ type Tab = {
   label: string;
   icon: React.ReactNode;
   count?: number;
-  
+
 };
 
 type TabNavigationSectionProps = {
@@ -36,10 +37,11 @@ export const TabNavigationSection = ({
       icon: <Users size={16} />,
       count: subject?.currentStudents ?? 0,
     },
-    { id: 2, label: "Lịch học", icon: <Calendar size={16} /> },
-    { id: 3, label: "Tài liệu", icon: <FileText size={16} /> },
-    { id: 4, label: "Điểm danh", icon: <CheckSquare size={16} /> },
-    { id: 5, label: "Báo cáo", icon: <BarChart3 size={16} /> },
+    { id: 2, label: "Lộ trình học", icon: <BookOpen size={16} /> },
+    { id: 3, label: "Lịch học", icon: <Calendar size={16} /> },
+    { id: 4, label: "Tài liệu", icon: <FileText size={16} /> },
+    { id: 5, label: "Điểm danh", icon: <CheckSquare size={16} /> },
+    { id: 6, label: "Báo cáo", icon: <BarChart3 size={16} /> },
   ];
 
   return (

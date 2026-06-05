@@ -31,9 +31,6 @@ import type { AttendanceToday } from "../../../../utils/types/attendance";
 import { attendanceApi } from "../../../../utils/api/attendance.api";
 import { cn } from "../../../ui/utils";
 
-// ============================================================================
-// Types
-// ============================================================================
 
 type Props = {
     subject: Subject | null;

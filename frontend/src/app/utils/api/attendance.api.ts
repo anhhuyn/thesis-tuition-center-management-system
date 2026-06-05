@@ -1,6 +1,6 @@
 import axios from "../axios"
 import type { ApiResponse } from "../types/api"
-import type { AttendanceResponse, AttendanceToday, UpdateAttendanceNotePayload, UpdateAttendanceStatusPayload } from "../types/attendance"
+import type { AttendanceResponse, AttendanceStatistics, AttendanceToday, UpdateAttendanceNotePayload, UpdateAttendanceStatusPayload } from "../types/attendance"
 
 export const attendanceApi = {
   getBySubjectAndDate(
@@ -31,5 +31,12 @@ export const attendanceApi = {
     payload: UpdateAttendanceNotePayload
   ): Promise<ApiResponse<string>> {
     return axios.put(`/attendance/note`, payload)
+  },
+
+  getStudentAttendanceStatistics(
+    studentId: number,
+    subjectId: number
+  ): Promise<ApiResponse<AttendanceStatistics>> {
+    return axios.get(`/attendance/statistics/student/${studentId}/subject/${subjectId}`)
   },
 }

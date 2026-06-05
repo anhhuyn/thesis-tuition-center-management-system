@@ -74,7 +74,6 @@ export function EduHeader() {
     }
   };
 
-  // 🟢 THÊM: Format time relative (giống TeacherHeader)
   const formatRelativeTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();

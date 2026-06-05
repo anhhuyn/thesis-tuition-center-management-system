@@ -2,62 +2,120 @@ import { ClassListSection } from "../../components/adminComponents/class/ClassLi
 import { DashboardSummarySection } from "../../components/adminComponents/class/DashboardSummarySection";
 import { useState } from "react";
 import AddClassModal from "../../components/adminComponents/class/AddClassModal";
-
+import { motion, AnimatePresence } from "framer-motion";
+import type { Variants } from "framer-motion";
 
 export function ClassListPage() {
   const [isOpenModal, setIsOpenModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Hàm refresh toàn bộ danh sách
   const handleRefresh = () => {
-    setRefreshKey(prev => prev + 1); 
+    setRefreshKey(prev => prev + 1);
+  };
+
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2,
+      },
+    },
+  };
+
+  const headerVariants: Variants = {
+    hidden: { y: -50, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        type: "spring" as const,
+        stiffness: 100,
+        damping: 12,
+      },
+    },
+  };
+
+  const contentVariants: Variants = {
+    hidden: { y: 30, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        type: "spring" as const,
+        stiffness: 80,
+        damping: 15,
+      },
+    },
+  };
+
+  const listVariants: Variants = {
+    hidden: { x: -20, opacity: 0 },
+    visible: {
+      x: 0,
+      opacity: 1,
+      transition: {
+        type: "spring" as const,
+        stiffness: 90,
+        damping: 12,
+        delay: 0.3,
+      },
+    },
   };
 
   return (
-    <main className="bg-gray-50 min-h-screen">
-
-      {/* Gradient Header */}
-      <section className="relative overflow-hidden pb-8 pt-0">
-
-        {/* Gradient Background */}
-        <div className="absolute inset-0 bg-[linear-gradient(169deg,rgba(102,126,234,1)_0%,rgba(118,75,162,1)_50%,rgba(240,147,251,1)_100%)]"></div>
-
-        {/* Wave */}
-        <svg
-          className="absolute bottom-[-1px] left-0 w-full"
-          viewBox="0 0 1440 270"
-        >
-          <path
-            fill="#f9fafb"
-            fillOpacity="1"
-            d="M0,192L80,170.7C160,149,320,107,480,117.3C640,128,800,192,960,202.7C1120,213,1280,171,1360,149.3L1440,128L1440,320L0,320Z"
-          ></path>
-        </svg>
-
+    <motion.main
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+      className="bg-gray-50 min-h-screen"
+    >
+      {/* Header */}
+      <motion.section
+        variants={headerVariants}
+        className="relative overflow-hidden pb-8 pt-0"
+      >
         {/* Content */}
-        <div className="relative max-w-7xl mx-auto px-6 pt-10">
+        <motion.div
+          variants={contentVariants}
+          className="relative max-w-7xl mx-auto px-6 pt-10"
+        >
           <DashboardSummarySection onAdd={() => setIsOpenModal(true)} />
-        </div>
-      </section>
+        </motion.div>
+      </motion.section>
 
       {/* Class List */}
-      <div className="max-w-7xl mx-auto px-6">
+      <motion.div
+        variants={listVariants}
+        className="max-w-7xl mx-auto px-6"
+      >
         <ClassListSection
-          key={refreshKey} 
+          key={refreshKey}
           isOpenModal={isOpenModal}
           setIsOpenModal={setIsOpenModal}
-          onRefresh={handleRefresh} 
+          onRefresh={handleRefresh}
         />
+      </motion.div>
 
-      </div>
-
-       <AddClassModal
-        isOpen={isOpenModal}
-        onClose={() => setIsOpenModal(false)}
-        mode="create"
-        onSuccess={handleRefresh} 
-      />
-
-    </main>
+      {/* Modal với animation */}
+      <AnimatePresence>
+        {isOpenModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <AddClassModal
+              isOpen={isOpenModal}
+              onClose={() => setIsOpenModal(false)}
+              mode="create"
+              onSuccess={handleRefresh}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+</motion.main>
   );
 }

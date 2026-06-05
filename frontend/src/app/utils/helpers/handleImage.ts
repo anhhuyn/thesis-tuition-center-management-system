@@ -6,9 +6,13 @@ export const getInitials = (name?: string): string => {
   return lastName.slice(0, 2).toUpperCase();
 };
 
-// Hàm xử lý đường dẫn ảnh từ Backend
 export const getImageSrc = (image?: string | null): string | null => {
   if (!image) return null;
-  if (image.startsWith("http")) return image; 
-  return `${import.meta.env.VITE_BACKEND_URL_IMAGE}${image}`; 
+
+  if (image.startsWith("http")) return image;
+
+  const baseUrl = import.meta.env.VITE_BACKEND_URL_IMAGE.replace(/\/$/, "");
+  const imagePath = image.replace(/^\//, "");
+
+  return `${baseUrl}/${imagePath}`;
 };

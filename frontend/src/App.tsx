@@ -29,6 +29,10 @@ import { LeaveCalendarPage } from './app/pages/admin/leaves/LeaveCalendarPage';
 import { LeaveRequestDetail } from './app/pages/admin/leaves/LeaveRequestDetail';
 import { LeaveManagementPage } from './app/pages/admin/leaves/LeaveManagementPage';
 import { TeacherLeaveManagementPage } from './app/pages/teacher/TeacherLeaveManagementPage';
+import { PayrollPage } from './app/pages/admin/PayrollPage';
+import {TeacherPayrollPage} from './app/pages/teacher/TeacherPayrollPage';
+import { ScrollToTop } from './app/components/ScrollToTop';
+
 
 function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -36,6 +40,7 @@ function App() {
 
   return (
     <BrowserRouter>
+    <ScrollToTop />
       <Routes>
         <Route
           path="/"
@@ -223,6 +228,15 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route
+            path="payroll"
+            element={
+              <ProtectedRoute allowedRoles={['R0']}>
+                <PayrollPage />
+              </ProtectedRoute>
+            }
+          />
           {/* Các trang khác thêm tương tự ở đây nha */}
         </Route>
 
@@ -277,6 +291,15 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['R1']}>
                 <TeacherLeaveManagementPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="salary"
+            element={
+              <ProtectedRoute allowedRoles={['R1']}>
+                <TeacherPayrollPage />
               </ProtectedRoute>
             }
           />

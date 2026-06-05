@@ -1,4 +1,3 @@
-// src/components/adminComponents/leaves/teacher/SubstituteRequestCard.tsx
 import { motion } from 'framer-motion';
 import { School, Calendar, Users, CheckCircle, XCircle, Clock as ClockIcon, AlertCircle, User, BellOff } from 'lucide-react';
 import type { ReplacementSession } from '../../../../utils/types/teacherLeave';
@@ -6,23 +5,20 @@ import type { ReplacementSession } from '../../../../utils/types/teacherLeave';
 interface SubstituteRequestCardProps {
   request: ReplacementSession;
   onAccept: (affectedSessionId: number) => void;
-  onReject: (affectedSessionId: number) => void;
+  onReject: (affectedSessionId: number, reason?: string) => void;
   onViewDetail: (affectedSessionId: number) => void;
 }
 
-// Hàm xử lý tên bị lỗi Hibernate proxy - CHỈ LẤY PHẦN SAU DẤU " - "
 const cleanName = (name: string): string => {
   if (!name) return 'N/A';
-  
-  // Nếu tên chứa dấu " - ", lấy phần cuối cùng
   if (name.includes(' - ')) {
     const parts = name.split(' - ');
     return parts[parts.length - 1].trim();
   }
-  
   return name;
 };
 
+// ✅ Cập nhật getStatusConfig với đầy đủ các status
 const getStatusConfig = (status: string) => {
   switch (status) {
     case 'PENDING':
@@ -32,6 +28,14 @@ const getStatusConfig = (status: string) => {
         text: 'text-amber-700',
         icon: ClockIcon,
         iconBg: 'bg-amber-50'
+      };
+    case 'ASSIGNED':  // ✅ THÊM
+      return { 
+        label: 'Yêu cầu dạy thay', 
+        bg: 'bg-blue-100', 
+        text: 'text-blue-700',
+        icon: ClockIcon,
+        iconBg: 'bg-blue-50'
       };
     case 'ACCEPTED':
       return { 
@@ -73,7 +77,6 @@ const formatDate = (dateStr: string) => {
   return date.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' });
 };
 
-// Component hiển thị khi không có yêu cầu
 export const EmptySubstituteRequests = () => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
@@ -98,13 +101,13 @@ export const EmptySubstituteRequests = () => (
 export const SubstituteRequestCard = ({ request, onAccept, onReject, onViewDetail }: SubstituteRequestCardProps) => {
   const statusConfig = getStatusConfig(request.status);
   const StatusIcon = statusConfig.icon;
-  const isPending = request.status === 'PENDING';
+  
+  // ✅ Sửa isPending để bao gồm cả ASSIGNED
+  const isPending = request.status === 'PENDING' || request.status === 'ASSIGNED';
   const isAccepted = request.status === 'ACCEPTED';
   
   const sessionId = request.affectedSessionId ?? request.id;
-  console.log('SubstituteRequestCard - sessionId:', sessionId, 'request:', request);
   
-  // Xử lý tên - chỉ lấy phần sau dấu " - "
   const displaySubjectName = cleanName(request.subjectName);
   const displayTeacherName = cleanName(request.originalTeacherName);
 
@@ -140,7 +143,7 @@ export const SubstituteRequestCard = ({ request, onAccept, onReject, onViewDetai
             )}
           </div>
 
-          {/* Main info grid */}
+          {/* Main info grid - giữ nguyên */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
@@ -148,9 +151,7 @@ export const SubstituteRequestCard = ({ request, onAccept, onReject, onViewDetai
               </div>
               <div>
                 <p className="text-[10px] text-gray-400 font-bold uppercase">Lớp</p>
-                <p className="font-bold text-gray-800 text-sm">
-                  {displaySubjectName}
-                </p>
+                <p className="font-bold text-gray-800 text-sm">{displaySubjectName}</p>
               </div>
             </div>
 
@@ -173,9 +174,7 @@ export const SubstituteRequestCard = ({ request, onAccept, onReject, onViewDetai
               </div>
               <div>
                 <p className="text-[10px] text-gray-400 font-bold uppercase">GV xin nghỉ</p>
-                <p className="font-semibold text-gray-700 text-sm">
-                  {displayTeacherName || 'Đang cập nhật'}
-                </p>
+                <p className="font-semibold text-gray-700 text-sm">{displayTeacherName || 'Đang cập nhật'}</p>
               </div>
             </div>
 
@@ -185,9 +184,7 @@ export const SubstituteRequestCard = ({ request, onAccept, onReject, onViewDetai
               </div>
               <div>
                 <p className="text-[10px] text-gray-400 font-bold uppercase">Trạng thái</p>
-                <p className={`font-semibold text-sm ${statusConfig.text}`}>
-                  {statusConfig.label}
-                </p>
+                <p className={`font-semibold text-sm ${statusConfig.text}`}>{statusConfig.label}</p>
                 {isAccepted && (
                   <p className="text-xs text-green-600 mt-0.5">Bạn là GV thay thế</p>
                 )}
@@ -228,7 +225,10 @@ export const SubstituteRequestCard = ({ request, onAccept, onReject, onViewDetai
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => onReject(sessionId)}
+                onClick={() => {
+                  const reason = prompt('Nhập lý do từ chối (tùy chọn):');
+                  onReject(sessionId, reason || undefined);
+                }}
                 className="flex-1 lg:flex-none px-5 py-2 bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2"
               >
                 <XCircle size={16} />

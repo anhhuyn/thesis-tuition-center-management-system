@@ -16,7 +16,7 @@ export function StatsCards() {
         studentApi.getStatistics()
             .then(res => {
                 setTotalStudents(res.totalStudents)
-                setTotalNewStudent(res.newStudentsThisMonth)
+                setTotalNewStudent(res.totalStudentsThisMonth)
             })
             .catch(err => {
                 console.error('Lỗi lấy thống kê học sinh', err)
