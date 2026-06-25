@@ -42,7 +42,6 @@ export const TabNavigationSection = ({
     { id: 3, label: "Lịch học", icon: <Calendar size={18} /> },
     { id: 4, label: "Tài liệu", icon: <FileText size={18} /> },
     { id: 5, label: "Điểm danh", icon: <CheckSquare size={18} /> },
-    { id: 6, label: "Báo cáo", icon: <BarChart3 size={18} /> },
   ];
 
   return (

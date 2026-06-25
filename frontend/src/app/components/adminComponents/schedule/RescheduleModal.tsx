@@ -555,12 +555,7 @@ export const RescheduleModal = ({
                   <XCircle size={18} /> Hủy ca học
                 </button>
               </div>
-              <button 
-                onClick={handleNotify}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 rounded-xl text-white font-semibold hover:from-blue-700 hover:to-indigo-700 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95"
-              >
-                <Bell size={18} /> Thông báo cho phụ huynh
-              </button>
+             
             </div>
           )}
         </div>

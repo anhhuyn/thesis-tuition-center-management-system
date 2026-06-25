@@ -94,23 +94,6 @@ export const ScheduleHeaderFiltersSection = ({
         </div>
 
         <div className="w-px h-8 bg-violet-200/30" />
-
-        {/* Filters */}
-        <div className="flex gap-2">
-          <button className="flex gap-2 px-4 py-2 bg-white rounded-lg border items-center">
-            <DoorOpen size={16} />
-            <span className="text-sm font-medium text-indigo-950">
-              Phòng học
-            </span>
-          </button>
-
-          <button className="flex gap-2 px-4 py-2 bg-white rounded-lg border items-center">
-            <GraduationCap size={16} />
-            <span className="text-sm font-medium text-indigo-950">
-              Khối lớp
-            </span>
-          </button>
-        </div>
       </div>
     </div>
   );

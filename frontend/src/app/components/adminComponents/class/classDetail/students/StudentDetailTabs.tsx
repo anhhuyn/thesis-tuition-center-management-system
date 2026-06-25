@@ -8,8 +8,6 @@ const tabs = [
   { id: "overview" as Tab, label: "Tổng quan", icon: <User size={13} /> },
   { id: "academic" as Tab, label: "Học tập", icon: <BookOpen size={13} /> },
   { id: "attendance" as Tab, label: "Chuyên cần", icon: <CalendarIcon size={13} /> },
-  { id: "scores" as Tab, label: "Điểm số", icon: <Award size={13} /> },
-  { id: "feedback" as Tab, label: "Đánh giá", icon: <ClipboardCheck size={13} /> },
 ];
 
 type StudentDetailTabsProps = {

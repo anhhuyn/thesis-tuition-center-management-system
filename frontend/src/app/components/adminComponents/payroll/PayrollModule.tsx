@@ -102,85 +102,7 @@ const PayrollModuleSkeleton: React.FC = () => (
   </div>
 );
 
-// AI Insight Widget - Premium feature
-const AIInsightWidget: React.FC<{ stats: StatsType | null }> = ({ stats }) => {
-  const [isHovered, setIsHovered] = useState(false);
 
-  const getInsight = () => {
-    if (!stats || stats.totalPayrolls === 0) {
-      return {
-        title: 'Chưa có dữ liệu',
-        message: 'Tạo bảng lương đầu tiên để xem AI insights',
-        icon: '✨',
-      };
-    }
-
-    const completionRate = stats.completionRate;
-    const waitingCount = stats.waitingConfirmationCount;
-    const draftCount = stats.draftCount;
-
-    if (waitingCount > 0) {
-      return {
-        title: 'Cần xác nhận',
-        message: `${waitingCount} bảng lương đang chờ giáo viên xác nhận`,
-        icon: '📋',
-      };
-    }
-    if (draftCount > 0) {
-      return {
-        title: 'Bảng lương nháp',
-        message: `${draftCount} bảng lương cần hoàn thiện trước khi gửi`,
-        icon: '✏️',
-      };
-    }
-    if (completionRate >= 80) {
-      return {
-        title: 'Tiến độ tốt',
-        message: `Hoàn thành ${completionRate}% bảng lương - Xuất sắc!`,
-        icon: '🎯',
-      };
-    }
-    return {
-      title: 'Tổng quan',
-      message: `${stats.totalPayrolls} bảng lương | Hoàn thành ${completionRate}%`,
-      icon: '📊',
-    };
-  };
-
-  const insight = getInsight();
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: 0.2, duration: 0.4 }}
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
-      className="relative overflow-hidden rounded-2xl btn-gradient from-purple-50 via-white to-purple-50/30 backdrop-blur-sm border border-purple-200 shadow-lg shadow-purple-100/30 mb-6"
-    >
-      <div className="absolute top-0 right-0 w-32 h-32 bg-purple-100 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 opacity-50" />
-      <div className="relative px-5 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl btn-gradient from-purple-500 to-purple-600 shadow-md shadow-purple-200">
-            <Sparkles className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-purple-500">AI Insight</p>
-            <p className="text-sm font-medium text-slate-700">{insight.message}</p>
-          </div>
-        </div>
-        <motion.div
-          animate={{ rotate: isHovered ? 360 : 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-2xl"
-        >
-          {insight.icon}
-        </motion.div>
-      </div>
-      <div className="absolute inset-0 btn-gradient from-white/0 via-purple-50/20 to-white/0 pointer-events-none" />
-    </motion.div>
-  );
-};
 
 const PayrollModule: React.FC<PayrollModuleProps> = ({ mode }) => {
   const [activeTab, setActiveTab] = useState<TabType>('list');
@@ -294,11 +216,7 @@ const PayrollModule: React.FC<PayrollModuleProps> = ({ mode }) => {
             <PayrollHeader onCreatePayroll={handleCreatePayroll} />
           </motion.div>
 
-          {/* AI Insight Widget */}
-          <motion.div variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}>
-            <AIInsightWidget stats={stats} />
-          </motion.div>
-
+         
           {/* Stats Cards */}
           <motion.div variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}>
             <PayrollStats stats={stats} loading={loading} />

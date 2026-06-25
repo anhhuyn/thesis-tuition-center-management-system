@@ -19,6 +19,7 @@ import { teacherLeaveApi } from "../../../utils/api/teacherLeave.api";
 import { getImageSrc, getInitials } from "../../../utils/helpers";
 import { ScheduleHeaderFiltersSection } from "./ScheduleHeaderFiltersSection";
 import { WeeklyScheduleView } from "./WeeklyScheduleView";
+import { useNavigate } from "react-router-dom";
 interface UrgentAlertItem {
   sessionId: number;
   subjectName: string;
@@ -37,6 +38,7 @@ interface UrgentAlertItem {
 
 
 export const ScheduleMainSection = () => {
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<any>(null);
   const [sessionsByTime, setSessionsByTime] = useState<any[]>([]);
@@ -52,6 +54,11 @@ export const ScheduleMainSection = () => {
   const [weeklyAbsentTeachers, setWeeklyAbsentTeachers] = useState<TeacherAbsentResponse[]>([]);
   const [loadingWeeklyAbsent, setLoadingWeeklyAbsent] = useState(false);
   const [viewMode, setViewMode] = useState<"tuan" | "ngay">("ngay");
+
+  const handleNavigateToTeacherLeave = () => {
+    navigate('/admin/teacher/leave');
+  };
+
 
   // Hàm fetch sessions cho 10 ngày tới
   const fetchUrgentAlerts = async () => {
@@ -223,7 +230,7 @@ export const ScheduleMainSection = () => {
     try {
       const response = await roomApi.getAll();
       if (response && response.data) {
-        setRooms(response.data);
+        setRooms(response.data as Room[]);
       }
     } catch (error) {
       console.error('Failed to fetch rooms:', error);
@@ -644,7 +651,7 @@ export const ScheduleMainSection = () => {
         activeView={viewMode}
         onViewChange={setViewMode}
       />
-       <div className="grid grid-cols-12 gap-8 mt-8">
+      <div className="grid grid-cols-12 gap-8 mt-8">
         {/* Left Column - Schedule */}
         {viewMode === "ngay" ? (
           <div className="col-span-9">
@@ -701,7 +708,7 @@ export const ScheduleMainSection = () => {
                         {formatDisplayDate(currentDate)}
                       </span>
                     </p>
-                   
+
                   </div>
                 ) : (
                   <div className="relative">
@@ -1076,54 +1083,7 @@ export const ScheduleMainSection = () => {
               </div>
             </div>
           </div>
-
-          {/* Room Status  */}
-          <div className="p-6 bg-white rounded-2xl border">
-            <div className="flex items-center justify-between mb-6">
-              <div className="font-extrabold text-indigo-950 leading-tight">
-                <div className="text-sm">Tình trạng phòng</div>
-                <div className="text-[10px] text-slate-500 font-semibold mt-0.5">
-                  Hôm nay
-                </div>
-              </div>
-              <div className="font-semibold text-blue-900 text-xs">Xem tất cả</div>
-            </div>
-            <div className="space-y-4">
-              {todayRoomStatus.slice(0, 4).map((room) => {
-                // Chọn icon dựa trên tên phòng
-                let RoomIcon = School;
-                if (room.name.toLowerCase().includes('thí nghiệm') || room.name.toLowerCase().includes('lab')) {
-                  RoomIcon = Beaker;
-                }
-
-                // Format status text
-                let displayStatus = room.status;
-                if (room.status.includes('Đang sử dụng')) {
-                  displayStatus = room.status;
-                } else if (room.status.includes('Chuẩn bị')) {
-                  displayStatus = room.status;
-                } else {
-                  displayStatus = "Đang trống";
-                }
-
-                return (
-                  <div key={room.id} className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                      <RoomIcon className="w-4 h-4 text-blue-700" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-semibold text-indigo-950 text-xs">
-                        {room.name}
-                      </div>
-                      <div className="text-violet-900 text-[10px]">
-                        {displayStatus}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+        
 
           {/* Urgent Alert - Dynamic */}
           <div className="p-3 bg-rose-50 rounded-2xl border border-rose-200">
@@ -1139,9 +1099,9 @@ export const ScheduleMainSection = () => {
                 )}
               </div>
 
-              {/* Nút Điều phối ngay chung - chỉ hiện khi có alert */}
               {urgentAlerts.length > 0 && (
                 <button
+                  onClick={handleNavigateToTeacherLeave}
                   className="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-semibold rounded transition shadow-sm whitespace-nowrap"
                 >
                   Điều phối ngay
@@ -1185,52 +1145,7 @@ export const ScheduleMainSection = () => {
             )}
           </div>
 
-          {/* Teachers Absent - Dynamic from API */}
-          <div className="p-6 bg-blue-50 rounded-2xl border border-violet-100">
-            <div className="font-extrabold text-blue-900 text-[11px] mb-4">
-              GIÁO VIÊN VẮNG (TUẦN NÀY)
-            </div>
-
-            {loadingWeeklyAbsent ? (
-              <div className="flex items-center mb-3">
-                <div className="w-10 h-10 rounded-full bg-gray-300 ring-4 ring-white" />
-                <div className="w-10 h-10 -ml-3 rounded-full bg-gray-400 ring-4 ring-white" />
-                <div className="w-10 h-10 -ml-3 bg-blue-200 rounded-full flex items-center justify-center ring-4 ring-white">
-                  <span className="font-semibold text-blue-900 text-[10px]">...</span>
-                </div>
-              </div>
-            ) : weeklyAbsentTeachers.length > 0 ? (
-              <>
-                <div className="flex items-center mb-3">
-                  {weeklyAbsentTeachers.slice(0, 3).map((teacher, idx) => (
-                    <TeacherAvatarWithTooltip key={teacher.leaveId} teacher={teacher} index={idx} />
-                  ))}
-
-                  {weeklyAbsentTeachers.length > 3 && (
-                    <div className="w-10 h-10 -ml-3 bg-blue-200 rounded-full flex items-center justify-center ring-4 ring-white">
-                      <span className="font-semibold text-blue-900 text-[10px]">+{weeklyAbsentTeachers.length - 3}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="text-blue-900 text-[10px]">
-                  Tổng cộng {weeklyAbsentTeachers.length} giáo viên nghỉ trong tuần này
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex items-center mb-3">
-                  <div className="w-10 h-10 rounded-full bg-gray-300 ring-4 ring-white" />
-                  <div className="w-10 h-10 -ml-3 rounded-full bg-gray-400 ring-4 ring-white" />
-                  <div className="w-10 h-10 -ml-3 bg-blue-200 rounded-full flex items-center justify-center ring-4 ring-white">
-                    <span className="font-semibold text-blue-900 text-[10px]">+3</span>
-                  </div>
-                </div>
-                <div className="text-blue-900 text-[10px]">
-                  Tổng cộng 5 giáo viên nghỉ trong tuần này
-                </div>
-              </>
-            )}
-          </div>
+        
         </div>
 
         <RescheduleModal

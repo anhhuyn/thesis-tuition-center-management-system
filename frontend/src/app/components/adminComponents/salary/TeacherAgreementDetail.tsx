@@ -62,13 +62,7 @@ export const TeacherAgreementDetail: React.FC<TeacherAgreementDetailProps> = ({
               <Plus className="w-4 h-4" />
               Thêm thỏa thuận
             </button>
-            <button
-              onClick={onViewAll}
-              className="bg-white text-blue-600 px-4 py-2.5 rounded-xl font-medium flex items-center gap-2 hover:bg-blue-50 transition-all border border-blue-200 text-sm"
-            >
-              <ExternalLink className="w-4 h-4" />
-              Xem tất cả
-            </button>
+           
           </div>
         </div>
       </div>
@@ -159,16 +153,7 @@ export const TeacherAgreementDetail: React.FC<TeacherAgreementDetailProps> = ({
                       >
                         <Edit className="w-4 h-4" />
                       </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDelete(agreement.id);
-                        }}
-                        className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all"
-                        title="Xóa"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                     
                     </div>
                   </div>
                   

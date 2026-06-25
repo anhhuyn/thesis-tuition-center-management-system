@@ -548,7 +548,7 @@ export const CurriculumFormModal = ({
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-xl shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white btn-gradient rounded-xl shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <Loader2 size={16} className="animate-spin" />

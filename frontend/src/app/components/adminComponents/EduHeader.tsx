@@ -9,6 +9,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { getImageSrc, getInitials, getRoleName } from "../../utils/helpers";
 import type { ActivityLog } from '../../utils/types/activity-log';
 import { activityLogApi } from '../../utils/api/activity-log.api';
+import { teacherLeaveApi } from '../../utils/api/teacherLeave.api';
 
 const NAV_LINKS = [
   { label: 'Trang chủ', path: '/admin/home' },
@@ -36,7 +37,6 @@ const NAV_LINKS = [
     label: 'Khác',
     path: '#',
     children: [
-      { label: 'Kho Tài liệu', path: '/admin/documents' },
       { label: 'Lịch học', path: '/admin/schedule' },
       { label: 'Phòng học', path: '/admin/rooms' },
       { label: 'Lịch sử hoạt động', path: '/admin/recent-activity' },
@@ -361,6 +361,28 @@ export function EduHeader() {
     }
   };
 
+  // Trong EduHeader component, thêm state mới
+  const [pendingLeaveCount, setPendingLeaveCount] = useState(0);
+
+  // Thêm useEffect để fetch số lượng đơn chờ duyệt
+  useEffect(() => {
+    const fetchPendingLeaveCount = async () => {
+      try {
+        if (!user) return;
+        const stats = await teacherLeaveApi.getPendingStats();
+        setPendingLeaveCount(stats.pendingCount);
+      } catch (err) {
+        console.error('Error fetching pending leave count:', err);
+      }
+    };
+
+    fetchPendingLeaveCount();
+
+    // Có thể set interval để refresh mỗi 30s nếu muốn
+    const interval = setInterval(fetchPendingLeaveCount, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
+
   const handleLogout = useCallback(() => {
     logout();
     navigate('/');
@@ -451,38 +473,51 @@ export function EduHeader() {
               </span>
             </div>
 
-            {/* Desktop Menu */}
-            <div className="hidden md:flex items-center space-x-8">
-              {NAV_LINKS.map((link) => (
-                <div key={link.label} className="relative group">
-                  <button
-                    onClick={() => !link.children && navigateToPage(link.path)}
-                    className={`nav-link font-semibold text-sm transition-all flex items-center gap-1 ${isActive(link.path) ? 'gradient-text font-semibold' : 'text-gray-600 hover:text-gray-800'
-                      }`}
-                  >
-                    {link.label}
-                    {link.children && (
-                      <ChevronDown className="w-4 h-4 transition-transform group-hover:rotate-180" />
-                    )}
-                  </button>
+           {/* Desktop Menu */}
+<div className="hidden md:flex items-center space-x-8">
+  {NAV_LINKS.map((link) => (
+    <div key={link.label} className="relative group">
+      <button
+        onClick={() => !link.children && navigateToPage(link.path)}
+        className={`nav-link font-semibold text-sm transition-all flex items-center gap-1 ${
+          isActive(link.path) ? 'gradient-text font-semibold' : 'text-gray-600 hover:text-gray-800'
+        }`}
+      >
+        {link.label}
+        {/* 👉 BADGE NHỎ CHO "Giáo viên" */}
+        {link.label === 'Giáo viên' && pendingLeaveCount > 0 && (
+          <span className="ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm shadow-red-500/20">
+            {pendingLeaveCount > 99 ? '99+' : pendingLeaveCount}
+          </span>
+        )}
+        {link.children && (
+          <ChevronDown className="w-4 h-4 transition-transform group-hover:rotate-180" />
+        )}
+      </button>
 
-                  {/* Dropdown cho mục 'Khác' */}
-                  {link.children && (
-                    <div className="absolute left-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 translate-y-2 group-hover:translate-y-0 z-50 py-2">
-                      {link.children.map((child) => (
-                        <button
-                          key={child.path}
-                          onClick={() => navigateToPage(child.path)}
-                          className="w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-indigo-50 hover:text-[#667eea] transition-colors"
-                        >
-                          {child.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+      {/* Dropdown */}
+      {link.children && (
+        <div className="absolute left-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 translate-y-2 group-hover:translate-y-0 z-50 py-2">
+          {link.children.map((child) => (
+            <button
+              key={child.path}
+              onClick={() => navigateToPage(child.path)}
+              className="w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-indigo-50 hover:text-[#667eea] transition-colors flex items-center justify-between"
+            >
+              <span>{child.label}</span>
+              {/* 👉 BADGE NHỎ CHO "Lịch nghỉ giáo viên" */}
+              {child.label === 'Lịch nghỉ giáo viên' && pendingLeaveCount > 0 && (
+                <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm shadow-red-500/20">
+                  {pendingLeaveCount > 99 ? '99+' : pendingLeaveCount}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  ))}
+</div>
 
             {/* Right side icons */}
             <div className="flex items-center gap-1 sm:gap-2">
@@ -745,55 +780,51 @@ export function EduHeader() {
         </div>
 
         {/* Mobile Menu */}
-        {isMenuOpen && (
-          <div className="md:hidden border-t bg-white animate-in slide-in-from-top duration-300">
-            <div className="px-4 py-4 space-y-2">
-              {NAV_LINKS.map((link) => (
-                <div key={link.label}>
-                  <button
-                    onClick={() => !link.children && navigateToPage(link.path)}
-                    className={`block w-full text-left py-3 px-4 rounded-lg font-medium transition-all ${isActive(link.path) ? 'bg-indigo-50 gradient-text' : 'text-gray-600'
-                      }`}
-                  >
-                    {link.label}
-                  </button>
+        {/* Mobile Menu */}
+{isMenuOpen && (
+  <div className="md:hidden border-t bg-white animate-in slide-in-from-top duration-300">
+    <div className="px-4 py-4 space-y-2">
+      {NAV_LINKS.map((link) => (
+        <div key={link.label}>
+          <button
+            onClick={() => !link.children && navigateToPage(link.path)}
+            className={`block w-full text-left py-3 px-4 rounded-lg font-medium transition-all flex items-center justify-between ${
+              isActive(link.path) ? 'bg-indigo-50 gradient-text' : 'text-gray-600'
+            }`}
+          >
+            <span>{link.label}</span>
+            {/* 👉 BADGE NHỎ CHO "Giáo viên" trên mobile */}
+            {link.label === 'Giáo viên' && pendingLeaveCount > 0 && (
+              <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm shadow-red-500/20">
+                {pendingLeaveCount > 99 ? '99+' : pendingLeaveCount}
+              </span>
+            )}
+          </button>
 
-                  {link.children && (
-                    <div className="ml-4 mt-1 border-l-2 border-indigo-100">
-                      {link.children.map((child) => (
-                        <button
-                          key={child.path}
-                          onClick={() => navigateToPage(child.path)}
-                          className="block w-full text-left py-2 px-6 text-sm text-gray-500 hover:text-[#667eea]"
-                        >
-                          {child.label}
-                        </button>
-                      ))}
-                    </div>
+          {link.children && (
+            <div className="ml-4 mt-1 border-l-2 border-indigo-100">
+              {link.children.map((child) => (
+                <button
+                  key={child.path}
+                  onClick={() => navigateToPage(child.path)}
+                  className="block w-full text-left py-2 px-6 text-sm text-gray-500 hover:text-[#667eea] flex items-center justify-between"
+                >
+                  <span>{child.label}</span>
+                  {/* 👉 BADGE NHỎ CHO "Lịch nghỉ giáo viên" trên mobile */}
+                  {child.label === 'Lịch nghỉ giáo viên' && pendingLeaveCount > 0 && (
+                    <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm shadow-red-500/20">
+                      {pendingLeaveCount > 99 ? '99+' : pendingLeaveCount}
+                    </span>
                   )}
-                </div>
+                </button>
               ))}
-
-              {/* Pin option in mobile menu */}
-              <button
-                onClick={togglePin}
-                className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-indigo-50 rounded-lg transition-colors mt-4 border-t border-gray-100 pt-4"
-              >
-                {isPinned ? (
-                  <>
-                    <Pin className="w-5 h-5 text-indigo-600" />
-                    <span className="font-medium">Bỏ ghim header</span>
-                  </>
-                ) : (
-                  <>
-                    <PinOff className="w-5 h-5" />
-                    <span className="font-medium">Ghim header</span>
-                  </>
-                )}
-              </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      ))}
+    </div>
+  </div>
+)}
       </nav>
     </>
   );

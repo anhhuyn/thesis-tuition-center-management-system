@@ -62,18 +62,11 @@ export function StatsCards() {
             icon: GraduationCap,
             bgClass: 'bg-pink-500'
         },
-        {
-            title: 'Doanh thu tháng',
-            value: '₫45.2M',
-            change: '+8%',
-            trend: 'up',
-            icon: DollarSign,
-            bgClass: 'bg-green-500'
-        }
+       
     ];
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {dynamicStats.map((stat, index) => {
                 const Icon = stat.icon;
                 const TrendIcon = stat.trend === 'up' ? TrendingUp : TrendingDown;

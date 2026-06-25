@@ -8,8 +8,6 @@ import { LeaveHeader } from '../../../components/adminComponents/leaves/LeaveHea
 import { LeaveStats } from '../../../components/adminComponents/leaves/LeaveStats';
 import { LeaveToolbar } from '../../../components/adminComponents/leaves/LeaveToolbar';
 import { LeaveTable } from '../../../components/adminComponents/leaves/LeaveTable';
-import { QuickActions } from '../../../components/adminComponents/leaves/QuickActions';
-import { RecentActivities } from '../../../components/adminComponents/leaves/RecentActivities';
 import { ProfileCard } from '../../../components/adminComponents/leaves/ProfileCard';
 import { teacherLeaveApi } from '../../../utils/api/teacherLeave.api';
 import { teacherApi } from '../../../utils/api/teacher.api';
@@ -674,23 +672,6 @@ export function LeaveManagementPage() {
           </AnimatePresence>
         </motion.div>
       </motion.main>
-
-      <motion.aside
-        variants={slideInRight}
-        className="w-72 bg-white border-l border-slate-200 flex flex-col h-screen sticky top-0 overflow-y-auto"
-      >
-        <div className="p-5 space-y-5 flex-1">
-          <QuickActions onQuickCreate={handleCreateRequest} onExport={handleExport} />
-          <RecentActivities activities={[]} onViewAll={() => {}} />
-        </div>
-        <div className="p-5 border-t border-slate-200">
-          <ProfileCard 
-            userName="Admin Dashboard" 
-            userRole="Quản trị viên" 
-            onLogout={() => {}} 
-          />
-        </div>
-      </motion.aside>
 
       <LeaveApprovalModal
         isOpen={approvalModalOpen}

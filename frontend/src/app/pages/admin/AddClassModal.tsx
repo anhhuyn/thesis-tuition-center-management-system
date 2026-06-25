@@ -16,12 +16,12 @@ import {
     Calendar,
     FileText
 } from 'lucide-react';
-import { ModalPortal } from '../../../pages/ModalPortal';
-import type { TeacherBasic } from '../../../utils/types/teacher';
-import { sessionApi, subjectApi, teacherApi } from '../../../utils/api';
-import { getImageSrc, getInitials } from '../../../utils/helpers';
-import type { SessionOfTeacher } from '../../../utils/types/session';
-import type { CreateSubjectRequest, Subject } from '../../../utils/types/subject';
+import { ModalPortal } from '../ModalPortal';
+import type { TeacherBasic } from '../../utils/types/teacher';
+import { sessionApi, subjectApi, teacherApi } from '../../utils/api';
+import { getImageSrc, getInitials } from '../../utils/helpers';
+import type { SessionOfTeacher } from '../../utils/types/session';
+import type { CreateSubjectRequest, Subject } from '../../utils/types/subject';
 import { useOutletContext } from 'react-router-dom';
 
 interface AddClassModalProps {
@@ -244,7 +244,6 @@ export const AddClassModal: React.FC<AddClassModalProps> = ({ isOpen, onClose, m
                     status: formData.status,
                     maxStudents: Number(formData.maxStudents),
                     sessionsPerWeek: Number(formData.sessionsPerWeek),
-
                 });
                 setAlert?.({
                     type: "success",

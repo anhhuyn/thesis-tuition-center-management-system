@@ -447,7 +447,6 @@ export const LeaveRequestDetail = () => {
                 <h1 className="text-xl font-semibold text-slate-800">Chi tiết đơn xin nghỉ</h1>
                 {getStatusBadge()}
               </div>
-              <p className="text-xs text-slate-400">Mã đơn: #{leave.id}</p>
             </div>
             
             <div className="flex items-center gap-2">
@@ -505,33 +504,17 @@ export const LeaveRequestDetail = () => {
               className="bg-white rounded-xl p-5 flex items-start gap-5 shadow-sm border border-slate-200"
             >
               <div className="relative group">
-                <div className="h-16 w-16 rounded-xl overflow-hidden ring-2 ring-purple-100 group-hover:ring-purple-300 transition-all flex-shrink-0">
-                  {hasAvatar ? (
-                    <img
-                      src={avatarUrl}
-                      alt={leave.teacherName}
-                      className="w-full h-full object-cover"
-                      onError={() => setImageError(true)}
-                    />
-                  ) : (
-                    <div className="w-full h-full btn-gradient from-purple-100 to-purple-50 flex items-center justify-center">
-                      <User className="h-7 w-7 text-purple-600" />
-                    </div>
-                  )}
-                </div>
+                
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <h2 className="text-base font-semibold text-slate-800">{leave.teacherName}</h2>
                   <span className="text-[10px] font-medium text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">
-                    Giảng viên
+                    Giáo viên
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-4 mt-1.5 text-xs text-slate-500">
-                  <span className="flex items-center gap-1">
-                    <Badge className="w-3 h-3 text-purple-400" />
-                    Mã GV: <span className="font-medium text-slate-600">{leave.teacherId}</span>
-                  </span>
+                 
                   <span className="flex items-center gap-1">
                     <Mail className="w-3 h-3 text-purple-400" />
                     <span className="truncate max-w-[180px]">{leave.teacherEmail}</span>

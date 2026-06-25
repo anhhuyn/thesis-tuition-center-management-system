@@ -161,37 +161,50 @@ export const CreateLeaveModal = ({
   }, [formData.startDate, formData.endDate, formData.startTime, formData.endTime, isAllDay]);
 
   const handleSubmit = async () => {
-    if (!formData.startDate) {
-      setError('Vui lòng chọn ngày bắt đầu');
-      return;
-    }
-    if (!formData.leaveType) {
-      setError('Vui lòng chọn loại nghỉ');
-      return;
-    }
+  if (!formData.startDate) {
+    setError('Vui lòng chọn ngày bắt đầu');
+    return;
+  }
+  if (!formData.leaveType) {
+    setError('Vui lòng chọn loại nghỉ');
+    return;
+  }
 
-    setSubmitting(true);
-    setError('');
-    try {
-      await onSubmit({
-        startDate: formData.startDate,
-        endDate: formData.endDate || formData.startDate,
-        startTime: isAllDay ? undefined : formData.startTime,
-        endTime: isAllDay ? undefined : formData.endTime,
-        reason: formData.reason,
-        leaveType: formData.leaveType,
-      });
+  setSubmitting(true);
+  setError('');
+  try {
+    await onSubmit({
+      startDate: formData.startDate,
+      endDate: formData.endDate || formData.startDate,
+      startTime: isAllDay ? undefined : formData.startTime,
+      endTime: isAllDay ? undefined : formData.endTime,
+      reason: formData.reason,
+      leaveType: formData.leaveType,
+    });
 
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
 
-      onClose();
-    } catch (err: any) {
+    onClose();
+  } catch (err: any) {
+    if (err?.response?.status === 400 || err?.status === 400) {
+      const errorMessage = err?.response?.data?.message || err?.message || '';
+      
+      if (errorMessage.toLowerCase().includes('đã có đơn') || 
+          errorMessage.toLowerCase().includes('trùng') ||
+          errorMessage.toLowerCase().includes('duplicate') ||
+          errorMessage.toLowerCase().includes('existing leave request')) {
+        setError('Bạn đã có đơn xin nghỉ trong khoảng thời gian này. Vui lòng kiểm tra lại!');
+      } else {
+        setError(errorMessage || 'Dữ liệu không hợp lệ, vui lòng kiểm tra lại');
+      }
+    } else {
       setError(err.message || 'Có lỗi xảy ra, vui lòng thử lại');
-    } finally {
-      setSubmitting(false);
     }
-  };
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const getSelectedType = () => {
     return LEAVE_TYPES.find(t => t.value === formData.leaveType) || LEAVE_TYPES[0];
@@ -600,7 +613,7 @@ export const CreateLeaveModal = ({
                         <p className="text-xs font-medium text-indigo-700 dark:text-indigo-400">Thông tin</p>
                       </div>
                       <p className="text-xs text-indigo-600/80 dark:text-indigo-400/80 leading-relaxed">
-                        Hệ thống sẽ tự động thông báo cho phòng đào tạo và gửi yêu cầu
+                        Hệ thống sẽ tự động thông báo cho quản trị viên và gửi yêu cầu
                         sắp xếp dạy bù sau khi đơn được duyệt.
                       </p>
                     </motion.div>

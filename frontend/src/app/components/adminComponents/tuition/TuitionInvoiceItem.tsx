@@ -135,15 +135,7 @@ const TuitionInvoiceItem: React.FC<TuitionInvoiceItemProps> = ({
 
       {/* Actions */}
       <div className="col-span-1 flex justify-end gap-0.5">
-        {invoice.status !== 'PAID' && (
-          <button
-            onClick={() => onPayment(invoice.tuitionId)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-            title="Thanh toán"
-          >
-            <CreditCard className="w-4 h-4" />
-          </button>
-        )}
+        
         <button
           onClick={handleViewDetail}
           className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
@@ -151,13 +143,7 @@ const TuitionInvoiceItem: React.FC<TuitionInvoiceItemProps> = ({
         >
           <Eye className="w-4 h-4" />
         </button>
-        <button
-          onClick={() => onEdit(invoice.tuitionId)}
-          className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-          title="Chỉnh sửa"
-        >
-          <Edit className="w-4 h-4" />
-        </button>
+      
       </div>
     </div>
   );

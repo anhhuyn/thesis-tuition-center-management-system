@@ -2,12 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Edit,
   Printer,
   FileText,
   CreditCard,
   TrendingUp,
-  Brain,
   Calendar,
   Clock,
   History,
@@ -16,11 +14,19 @@ import {
   Trash2,
   PlusCircle,
   Landmark,
-  Wallet,
   AlertCircle,
   User,
   Loader2,
   CheckCircle,
+  ArrowLeft,
+  Download,
+  Share2,
+  MoreVertical,
+  Receipt,
+  BookOpen,
+  Users,
+  DollarSign,
+  Award,
 } from 'lucide-react';
 import { ProtectedRoute } from '../../routes/ProtectedRoute';
 import { tuitionApi } from '../../utils/api/tuition.api';
@@ -38,8 +44,6 @@ interface TuitionDetailData {
   remainingAmount: number;
   dueDate: string;
   courses: number;
-  aiInsight: string;
-  aiPercentage: number;
   attendance: number;
   totalHours: number;
   scholarship: number;
@@ -74,28 +78,14 @@ export const TuitionDetailPage: React.FC = () => {
   const [data, setData] = useState<TuitionDetailData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState<string>('');
-  const [editData, setEditData] = useState<{
-    items: TuitionItem[];
-    scholarship: number;
-  }>({ items: [], scholarship: 0 });
+
   useEffect(() => {
     if (id) {
       fetchTuitionDetail();
     }
   }, [id]);
-
-  const handleOpenEditModal = () => {
-    if (data) {
-      setEditData({
-        items: data.items.map(item => ({ ...item })),
-        scholarship: data.scholarship
-      });
-      setShowEditModal(true);
-    }
-  };
 
   const fetchTuitionDetail = async () => {
     try {
@@ -130,8 +120,6 @@ export const TuitionDetailPage: React.FC = () => {
         remainingAmount: response.remainingAmount || 0,
         dueDate: response.dueDate || new Date(response.createdAt || Date.now()).toLocaleDateString('vi-VN'),
         courses: response.details?.length || 0,
-        aiInsight: generateAIInsight(response),
-        aiPercentage: calculateAIPercentage(response),
         attendance: 94,
         totalHours: calculateTotalHours(response.details),
         scholarship: response.details?.reduce((sum, d) => sum + (d.totalMoney || 0) * 0.2, 0) || 0,
@@ -168,31 +156,6 @@ export const TuitionDetailPage: React.FC = () => {
     return details?.reduce((sum, d) => sum + (d.totalHours || 0), 0) || 0;
   };
 
-  const calculateAIPercentage = (response: TuitionDetailResponse): number => {
-    if (!response.details || response.details.length === 0) return 0;
-    const maxAmount = Math.max(...response.details.map(d => d.totalMoney || 0));
-    const maxIndex = response.details.findIndex(d => (d.totalMoney || 0) === maxAmount);
-    return maxIndex >= 0 ? 65 : 50; 
-  };
-
-  const generateAIInsight = (response: TuitionDetailResponse): string => {
-    if (!response.details || response.details.length === 0) {
-      return 'Chưa có dữ liệu để phân tích.';
-    }
-    const total = response.totalAmount || 0;
-    const paid = response.paidAmount || 0;
-    const remaining = response.remainingAmount || 0;
-    const paidPercent = total > 0 ? Math.round((paid / total) * 100) : 0;
-
-    if (remaining <= 0) {
-      return 'Học sinh đã hoàn thành thanh toán toàn bộ học phí. Xuất sắc!';
-    }
-    if (paidPercent >= 50) {
-      return `Học sinh đã thanh toán ${paidPercent}% học phí. Còn ${(remaining / 1000000).toFixed(1)}M cần thu hồi.`;
-    }
-    return `Học sinh mới thanh toán ${paidPercent}% học phí. Cần đẩy mạnh thu hồi ${(remaining / 1000000).toFixed(1)}M còn lại.`;
-  };
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN').format(amount) + 'đ';
   };
@@ -202,17 +165,17 @@ export const TuitionDetailPage: React.FC = () => {
       case 'PAID':
         return {
           label: 'Đã thanh toán',
-          className: 'bg-emerald-100 text-emerald-700 border-emerald-200'
+          className: 'bg-emerald-50 text-emerald-700 border-emerald-200'
         };
       case 'PARTIAL':
         return {
           label: 'Một phần',
-          className: 'bg-orange-100 text-orange-700 border-orange-200'
+          className: 'bg-amber-50 text-amber-700 border-amber-200'
         };
       default:
         return {
           label: 'Chờ thanh toán',
-          className: 'bg-red-100 text-red-700 border-red-200'
+          className: 'bg-red-50 text-red-700 border-red-200'
         };
     }
   };
@@ -247,82 +210,16 @@ export const TuitionDetailPage: React.FC = () => {
     }
   };
 
-
-  const handleEdit = async () => {
-    if (!data) return;
-
-    try {
-      setShowLoadingOverlay(true);
-
-      // Lấy danh sách detail IDs cần cập nhật
-      const updatePromises = editData.items.map((item, index) => {
-        const originalItem = data.items[index];
-        if (!originalItem) return null;
-
-        // Kiểm tra xem có thay đổi không
-        const hasChanged =
-          item.sessions !== originalItem.sessions ||
-          item.unitPrice !== originalItem.unitPrice ||
-          item.total !== originalItem.total ||
-          item.discount !== originalItem.discount;
-
-        if (!hasChanged) return null;
-
-        // Gọi API update cho từng detail
-        return tuitionApi.updateTuitionDetail({
-          detailId: originalItem.id,
-          attendedSessions: item.sessions,
-          totalMoney: item.total,
-          note: `Cập nhật số buổi: ${item.sessions}, đơn giá: ${item.unitPrice}`
-        });
-      }).filter(Boolean);
-
-      // Nếu không có thay đổi
-      if (updatePromises.length === 0) {
-        setShowEditModal(false);
-        setShowLoadingOverlay(false);
-        alert('Không có thay đổi nào được thực hiện.');
-        return;
-      }
-
-      // Thực hiện tất cả cập nhật
-      await Promise.all(updatePromises);
-
-      // Cập nhật lại dữ liệu
-      await fetchTuitionDetail();
-
-      setShowEditModal(false);
-      alert('✅ Cập nhật học phí thành công!');
-
-    } catch (err) {
-      console.error('❌ Failed to update tuition:', err);
-      alert('❌ Cập nhật thất bại. Vui lòng thử lại!');
-    } finally {
-      setShowLoadingOverlay(false);
-    }
-  };
-
-  const handleEditItemChange = (index: number, field: keyof TuitionItem, value: any) => {
-    setEditData(prev => {
-      const newItems = [...prev.items];
-      newItems[index] = { ...newItems[index], [field]: value };
-
-      if (field === 'sessions' || field === 'unitPrice') {
-        const sessions = field === 'sessions' ? value : newItems[index].sessions;
-        const unitPrice = field === 'unitPrice' ? value : newItems[index].unitPrice;
-        newItems[index].total = sessions * unitPrice;
-      }
-      return { ...prev, items: newItems };
-    });
-  };
-
   if (loading) {
     return (
       <ProtectedRoute allowedRoles={['R0']}>
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 flex items-center justify-center">
           <div className="text-center">
-            <Loader2 className="w-12 h-12 text-purple-600 animate-spin mx-auto mb-4" />
-            <p className="text-slate-500">Đang tải thông tin học phí...</p>
+            <div className="relative w-20 h-20 mx-auto mb-6">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-indigo-500/20 to-purple-500/20 animate-pulse"></div>
+              <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-indigo-600 animate-spin"></div>
+            </div>
+            <p className="text-slate-500 font-medium">Đang tải thông tin học phí...</p>
           </div>
         </div>
       </ProtectedRoute>
@@ -332,14 +229,16 @@ export const TuitionDetailPage: React.FC = () => {
   if (error || !data) {
     return (
       <ProtectedRoute allowedRoles={['R0']}>
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-          <div className="text-center max-w-md">
-            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 flex items-center justify-center p-4">
+          <div className="text-center max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
+            <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertCircle className="w-10 h-10 text-red-500" />
+            </div>
             <h2 className="text-2xl font-bold text-slate-900 mb-2">Không tìm thấy dữ liệu</h2>
             <p className="text-slate-500">{error || 'Không tìm thấy thông tin học phí'}</p>
             <button
               onClick={() => navigate('/admin/tuition')}
-              className="mt-6 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              className="mt-6 px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all duration-300"
             >
               Quay lại danh sách
             </button>
@@ -352,321 +251,310 @@ export const TuitionDetailPage: React.FC = () => {
   const statusBadge = getStatusBadge(data.status);
   const subtotal = data.items.reduce((sum, item) => sum + item.total, 0);
   const totalAfterDiscount = subtotal - data.scholarship;
+  const paymentProgress = data.totalTuition > 0 ? (data.paidAmount / data.totalTuition) * 100 : 0;
 
   return (
     <ProtectedRoute allowedRoles={['R0']}>
-      <main className="min-h-screen bg-slate-50 pb-20">
-        <div className="max-w-7xl mx-auto px-6 pt-8 space-y-8">
+      <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 space-y-6 sm:space-y-8">
+          
+
           {/* Header Section */}
-          <header className="bg-white/80 backdrop-blur-sm rounded-xl p-6 flex flex-col md:flex-row justify-between items-center gap-6 border border-slate-200/80 shadow-soft">
-            <div className="flex items-center gap-6">
-              <div className="relative">
-                {data.avatar ? (
-                  <img
-                    src={data.avatar}
-                    alt={data.studentName}
-                    className="w-20 h-20 rounded-full border-2 border-purple-500/20 object-cover shadow-lg"
-                  />
-                ) : (
-                  <div className="w-20 h-20 rounded-full bg-purple-100 flex items-center justify-center border-2 border-purple-500/20 shadow-lg">
-                    <User className="w-10 h-10 text-purple-600" />
-                  </div>
-                )}
-                <div className={`absolute bottom-0 right-0 w-5 h-5 border-2 border-white rounded-full ${data.status === 'PAID' ? 'bg-emerald-500' : data.status === 'PARTIAL' ? 'bg-orange-500' : 'bg-red-500'
-                  }`}></div>
-              </div>
-              <div>
-                <div className="flex items-center gap-3">
-                  <h1 className="text-2xl font-bold text-slate-900">{data.studentName}</h1>
-                  <span className={`px-3 py-1 text-xs font-semibold rounded-full border uppercase tracking-wider ${statusBadge.className}`}>
-                    {statusBadge.label}
-                  </span>
+          <header className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-300">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <div className="flex items-center gap-5">
+                <div className="relative">
+                  {data.avatar ? (
+                    <img
+                      src={data.avatar}
+                      alt={data.studentName}
+                      className="w-20 h-20 rounded-2xl object-cover ring-4 ring-indigo-50"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center ring-4 ring-indigo-50">
+                      <User className="w-10 h-10 text-indigo-600" />
+                    </div>
+                  )}
+                  <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white ${data.status === 'PAID' ? 'bg-emerald-500' : data.status === 'PARTIAL' ? 'bg-amber-500' : 'bg-red-500'
+                    }`}></div>
                 </div>
-                <p className="text-slate-500 font-medium mt-1">
-                  ID: {data.studentCode} • Lớp {data.grade}
-                </p>
+                <div>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">{data.studentName}</h1>
+                    <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${statusBadge.className} flex items-center gap-1.5`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${data.status === 'PAID' ? 'bg-emerald-500' : data.status === 'PARTIAL' ? 'bg-amber-500' : 'bg-red-500'
+                        }`}></span>
+                      {statusBadge.label}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 mt-1.5 text-sm text-slate-500">
+                    <span className="font-medium">{data.studentCode}</span>
+                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                    <span>Lớp {data.grade}</span>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={handleOpenEditModal}
-                className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-lg transition-all flex items-center gap-2 border border-slate-200 shadow-sm"
-              >
-                <Edit className="w-4 h-4" />
-                Chỉnh sửa
-              </button>
-              <button className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-lg transition-all flex items-center gap-2 border border-slate-200 shadow-sm">
-                <Printer className="w-4 h-4" />
-                In
-              </button>
-              <button className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-lg transition-all flex items-center gap-2 border border-slate-200 shadow-sm">
-                <FileText className="w-4 h-4" />
-                Xuất PDF
-              </button>
-              {data.status !== 'PAID' && (
-                <button
-                  onClick={() => {
-                    setPaymentAmount(data.remainingAmount.toString());
-                    setShowPaymentModal(true);
-                  }}
-                  className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all flex items-center gap-2 shadow-lg shadow-purple-600/20"
-                >
-                  <CreditCard className="w-4 h-4" />
-                  Thanh toán ngay
-                </button>
-              )}
+              <div className="flex flex-wrap gap-3 w-full md:w-auto">
+                
+                {data.status !== 'PAID' && (
+                  <button
+                    onClick={() => {
+                      setPaymentAmount(data.remainingAmount.toString());
+                      setShowPaymentModal(true);
+                    }}
+                    className="flex-1 md:flex-none px-6 py-2.5 btn-gradient text-white rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 hover:shadow-xl hover:shadow-indigo-600/30"
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    Thanh toán ngay
+                  </button>
+                )}
+               
+              </div>
             </div>
           </header>
 
           {/* KPI Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-slate-200/80 shadow-soft relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                <Landmark className="w-12 h-12 text-slate-900" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
+            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 group">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-slate-500 font-medium">Tổng học phí</p>
+                  <h3 className="text-2xl font-bold text-slate-900 mt-1.5">{formatCurrency(data.totalTuition)}</h3>
+                </div>
+                <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Landmark className="w-6 h-6 text-indigo-600" />
+                </div>
               </div>
-              <p className="text-slate-500 text-sm font-semibold">Tổng học phí</p>
-              <h2 className="text-3xl font-bold mt-2 text-slate-900">{formatCurrency(data.totalTuition)}</h2>
-              <div className="mt-4 flex items-center text-xs text-emerald-600 font-medium">
-                <TrendingUp className="w-3 h-3 mr-1" />
-                +5% so với học kỳ trước
+              <div className="mt-3 flex items-center gap-2 text-xs text-emerald-600 font-medium">
+                <TrendingUp className="w-3.5 h-3.5" />
+                +5% so với kỳ trước
               </div>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-slate-200/80 shadow-soft relative overflow-hidden group">
-              <p className="text-slate-500 text-sm font-semibold">Đã thanh toán</p>
-              <h2 className="text-3xl font-bold mt-2 text-purple-600">{formatCurrency(data.paidAmount)}</h2>
-              <div className="mt-4 flex items-center gap-2">
-                <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-purple-600 rounded-full" style={{ width: `${data.totalTuition > 0 ? (data.paidAmount / data.totalTuition) * 100 : 0}%` }}></div>
+            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 group">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-slate-500 font-medium">Đã thanh toán</p>
+                  <h3 className="text-2xl font-bold text-emerald-600 mt-1.5">{formatCurrency(data.paidAmount)}</h3>
                 </div>
-                <span className="text-xs font-bold text-slate-600">
-                  {data.totalTuition > 0 ? Math.round((data.paidAmount / data.totalTuition) * 100) : 0}%
+                <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <CheckCircle className="w-6 h-6 text-emerald-600" />
+                </div>
+              </div>
+              <div className="mt-3 flex items-center gap-2">
+                <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full transition-all duration-1000" 
+                    style={{ width: `${Math.min(paymentProgress, 100)}%` }}
+                  ></div>
+                </div>
+                <span className="text-xs font-bold text-slate-600 min-w-[40px] text-right">
+                  {Math.round(paymentProgress)}%
                 </span>
               </div>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-slate-200/80 shadow-soft relative overflow-hidden group border-l-4 border-l-orange-400">
-              <p className="text-slate-500 text-sm font-semibold">Còn phải thu</p>
-              <h2 className="text-3xl font-bold mt-2 text-orange-600">{formatCurrency(data.remainingAmount)}</h2>
-              <p className="mt-4 text-xs text-slate-500 font-medium">Hạn chót: {data.dueDate}</p>
+            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 group">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-slate-500 font-medium">Còn phải thu</p>
+                  <h3 className="text-2xl font-bold text-amber-600 mt-1.5">{formatCurrency(data.remainingAmount)}</h3>
+                </div>
+                <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <DollarSign className="w-6 h-6 text-amber-600" />
+                </div>
+              </div>
+              <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Hạn chót: <span className="font-medium text-slate-700">{data.dueDate}</span></span>
+              </div>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-slate-200/80 shadow-soft relative overflow-hidden group">
-              <p className="text-slate-500 text-sm font-semibold">Số môn học</p>
-              <h2 className="text-3xl font-bold mt-2 text-slate-900">{data.courses}</h2>
-              <div className="mt-4 flex -space-x-2">
-                {data.items.slice(0, 3).map((item, idx) => (
-                  <div key={idx} className="w-6 h-6 rounded-full bg-purple-100 border border-purple-200 flex items-center justify-center text-[10px] font-bold text-purple-600">
-                    {item.name.substring(0, 2).toUpperCase()}
-                  </div>
-                ))}
-                {data.courses > 3 && (
-                  <div className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] text-slate-600">
-                    +{data.courses - 3}
-                  </div>
-                )}
+            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 group">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-slate-500 font-medium">Tổng giờ học</p>
+                  <h3 className="text-2xl font-bold text-purple-600 mt-1.5">{data.totalHours}h</h3>
+                </div>
+                <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Clock className="w-6 h-6 text-purple-600" />
+                </div>
+              </div>
+              <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>{data.courses} môn học</span>
               </div>
             </div>
           </div>
 
           {/* Main Content */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column */}
-            <div className="lg:col-span-2 space-y-8">
-              {/* AI Insight */}
-              <section className="bg-purple-50/30 backdrop-blur-sm rounded-xl p-6 border border-purple-200/30 shadow-lg shadow-purple-500/5 relative overflow-hidden">
-                <div className="absolute -right-10 -top-10 w-40 h-40 bg-purple-500/5 blur-3xl rounded-full"></div>
-                <div className="flex items-center gap-3 mb-4">
-                  <Brain className="w-6 h-6 text-purple-600" />
-                  <h3 className="text-lg font-bold text-slate-900">AI Tuition Insights</h3>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    <p className="text-sm text-slate-600 leading-relaxed">
-                      {data.aiInsight}
-                    </p>
-                    <div className="flex gap-2">
-                      <span className="px-2 py-1 bg-purple-500/10 text-purple-600 text-[10px] font-bold rounded border border-purple-500/20">
-                        XU HƯỚNG TĂNG
-                      </span>
-                      <span className="px-2 py-1 bg-blue-100 text-blue-700 text-[10px] font-bold rounded border border-blue-200">
-                        TIỀM NĂNG HỌC BỔNG
-                      </span>
-                    </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column - Invoice */}
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-r from-slate-50/50 to-white">
+                  <div>
+                    <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                      <Receipt className="w-5 h-5 text-indigo-600" />
+                      Chi tiết học phần
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">Học kỳ 1 - Năm học 2023-2024</p>
                   </div>
-                  <div className="flex items-center justify-center">
-                    <div className="relative w-24 h-24">
-                      <svg className="w-full h-full transform -rotate-90">
-                        <circle className="text-slate-200" cx="48" cy="48" fill="transparent" r="40" stroke="currentColor" strokeWidth="8" />
-                        <circle className="text-purple-600 transition-all duration-1000" cx="48" cy="48" fill="transparent" r="40" stroke="currentColor" strokeDasharray="251.2" strokeDashoffset={251.2 * (1 - data.aiPercentage / 100)} strokeLinecap="round" strokeWidth="8" />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-slate-800">
-                        {data.aiPercentage}% AI
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              {/* Invoice Detail Table */}
-              <section className="bg-white/80 backdrop-blur-sm rounded-xl overflow-hidden border border-slate-200/80 shadow-soft">
-                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
-                  <h3 className="font-bold text-slate-900">Chi tiết học phần</h3>
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Học kỳ 1 - 2023</span>
+                  <span className="text-xs font-medium text-slate-400 bg-white px-3 py-1 rounded-lg border border-slate-200">
+                    {data.items.length} môn học
+                  </span>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
                     <thead>
-                      <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
-                        <th className="px-6 py-4 font-bold">Môn học / Nội dung</th>
-                        <th className="px-6 py-4 font-bold">Số buổi</th>
-                        <th className="px-6 py-4 font-bold">Đơn giá</th>
-                        <th className="px-6 py-4 font-bold text-right">Thành tiền</th>
+                      <tr className="bg-slate-50/80 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-100">
+                        <th className="px-6 py-4 font-semibold">Môn học / Nội dung</th>
+                        <th className="px-6 py-4 font-semibold text-center">Số buổi</th>
+                        <th className="px-6 py-4 font-semibold text-right">Đơn giá</th>
+                        <th className="px-6 py-4 font-semibold text-right">Thành tiền</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
-                      {data.items.map((item) => (
-                        <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                    <tbody className="divide-y divide-slate-50">
+                      {data.items.map((item, index) => (
+                        <tr key={item.id} className="hover:bg-indigo-50/30 transition-colors duration-150">
                           <td className="px-6 py-4">
                             <div className="font-semibold text-slate-900">{item.name}</div>
-                            <div className="text-xs text-slate-500">
-                              Mã MH: {item.code} {item.teacher && `| GV: ${item.teacher}`}
+                            <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                              <span>Mã: {item.code}</span>
+                              {item.teacher && (
+                                <>
+                                  <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                                  <span>GV: {item.teacher}</span>
+                                </>
+                              )}
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-slate-700">{item.sessions}</td>
-                          <td className="px-6 py-4 text-slate-700">{formatCurrency(item.unitPrice)}</td>
+                          <td className="px-6 py-4 text-center font-medium text-slate-700">{item.sessions}</td>
+                          <td className="px-6 py-4 text-right font-medium text-slate-700">{formatCurrency(item.unitPrice)}</td>
                           <td className="px-6 py-4 text-right font-bold text-slate-900">{formatCurrency(item.total)}</td>
                         </tr>
                       ))}
                     </tbody>
-                    <tfoot className="bg-slate-50/50">
-                      <tr>
-                        <td className="px-6 py-4 text-right font-medium text-slate-500" colSpan={3}>Tạm tính:</td>
-                        <td className="px-6 py-4 text-right font-bold text-slate-900">{formatCurrency(subtotal)}</td>
-                      </tr>
-                      <tr>
-                        <td className="px-6 py-4 text-right font-medium text-slate-500" colSpan={3}>Giảm trừ học bổng:</td>
-                        <td className="px-6 py-4 text-right font-bold text-emerald-600">- {formatCurrency(data.scholarship)}</td>
-                      </tr>
-                      <tr className="border-t border-slate-200">
-                        <td className="px-6 py-6 text-right font-bold text-lg text-slate-900" colSpan={3}>Tổng cộng:</td>
-                        <td className="px-6 py-6 text-right font-bold text-2xl text-purple-600">{formatCurrency(totalAfterDiscount)}</td>
+                    <tfoot className="bg-slate-50/50 border-t border-slate-100">
+                      
+                      <tr className="border-t-2 border-slate-200 bg-gradient-to-r from-indigo-50/30 to-purple-50/30">
+                        <td className="px-6 py-5 text-right font-bold text-lg text-slate-900" colSpan={3}>Tổng cộng:</td>
+                        <td className="px-6 py-5 text-right font-bold text-2xl gradient-text">
+                          {formatCurrency(totalAfterDiscount)}
+                        </td>
                       </tr>
                     </tfoot>
                   </table>
                 </div>
-              </section>
+              </div>
             </div>
 
             {/* Right Column */}
-            <div className="space-y-8">
-              {/* Overview Cards */}
-              <section className="grid grid-cols-2 gap-4">
-                <div className="bg-white/80 backdrop-blur-sm p-4 rounded-xl border border-slate-200/80 shadow-soft">
-                  <div className="flex items-center gap-2 mb-2 text-indigo-600">
-                    <Calendar className="w-4 h-4" />
-                    <span className="text-[10px] font-bold uppercase">Chuyên cần</span>
+            <div className="space-y-6">
+              {/* Quick Stats */}
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                <h4 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-indigo-600" />
+                  Tổng quan
+                </h4>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <BookOpen className="w-4 h-4 text-indigo-500" />
+                      <span>Số môn học</span>
+                    </div>
+                    <span className="font-bold text-slate-900">{data.courses}</span>
                   </div>
-                  <div className="text-xl font-bold text-slate-900">{data.attendance}%</div>
-                  <div className="text-[10px] text-slate-500 font-medium">24/26 buổi học</div>
-                </div>
-                <div className="bg-white/80 backdrop-blur-sm p-4 rounded-xl border border-slate-200/80 shadow-soft">
-                  <div className="flex items-center gap-2 mb-2 text-purple-600">
-                    <Clock className="w-4 h-4" />
-                    <span className="text-[10px] font-bold uppercase">Giờ học</span>
+                  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <Clock className="w-4 h-4 text-purple-500" />
+                      <span>Tổng số buổi</span>
+                    </div>
+                    <span className="font-bold text-slate-900">{data.items.reduce((sum, item) => sum + item.sessions, 0)}</span>
                   </div>
-                  <div className="text-xl font-bold text-slate-900">{data.totalHours}h</div>
-                  <div className="text-[10px] text-slate-500 font-medium">Tích lũy tháng 10</div>
+                  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <Users className="w-4 h-4 text-blue-500" />
+                      <span>Giáo viên</span>
+                    </div>
+                    <span className="font-bold text-slate-900">{new Set(data.items.map(item => item.teacher).filter(Boolean)).size}</span>
+                  </div>
                 </div>
-              </section>
+              </div>
 
-              {/* Payment Timeline */}
-              <section className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-slate-200/80 shadow-soft">
-                <h3 className="font-bold text-slate-900 mb-6 flex items-center gap-2">
-                  <History className="w-5 h-5 text-purple-600" />
-                  Lịch sử giao dịch
-                </h3>
-                <div className="space-y-6 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100">
-                  {data.transactions.length > 0 ? (
-                    data.transactions.map((tx) => (
-                      <div key={tx.id} className="relative pl-8 group">
-                        <div className={`absolute left-0 top-1.5 w-[24px] h-[24px] rounded-full border-4 border-white z-10 shadow-sm ${tx.type === 'income' ? 'bg-emerald-500' : 'bg-slate-200 group-hover:bg-purple-600 transition-colors'}`}></div>
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className={`font-bold text-sm ${tx.type === 'pending' ? 'text-slate-400 group-hover:text-slate-900 transition-colors' : 'text-slate-900'}`}>
-                              {tx.description}
-                            </p>
-                            <p className="text-xs text-slate-500">{tx.date}</p>
-                          </div>
-                          <span className={`text-sm font-bold ${tx.type === 'income' ? 'text-emerald-600' : 'text-slate-300 group-hover:text-slate-900'}`}>
-                            {tx.type === 'income' ? '+' : ''}{formatCurrency(tx.amount)}
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-4 text-slate-500 text-sm">Chưa có giao dịch nào</div>
-                  )}
-                </div>
-                <button className="w-full mt-8 py-2 text-xs font-bold text-purple-600 border border-purple-500/20 rounded-lg hover:bg-purple-50/50 transition-all">
-                  Xem tất cả giao dịch
-                </button>
-              </section>
-
-              {/* Support Card */}
-              <section className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-purple-500/5 bg-gradient-to-br from-purple-50/30 to-white shadow-soft">
-                <p className="text-sm font-bold text-slate-900 mb-4">Cần hỗ trợ về tài chính?</p>
-                <div className="flex gap-4">
-                  <div className="flex-1 text-xs text-slate-500 leading-relaxed font-medium">
-                    Liên hệ phòng kế toán để được hướng dẫn trả góp hoặc miễn giảm học phí.
+              {/* Payment Summary */}
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                <h4 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-emerald-600" />
+                  Tình trạng thanh toán
+                </h4>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500">Đã thanh toán</span>
+                    <span className="font-semibold text-emerald-600">{formatCurrency(data.paidAmount)}</span>
                   </div>
-                  <button className="bg-white border border-slate-200 p-2 rounded-lg text-slate-600 hover:text-purple-600 transition-colors shadow-sm">
-                    <MessageCircle className="w-5 h-5" />
-                  </button>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500">Còn lại</span>
+                    <span className="font-semibold text-amber-600">{formatCurrency(data.remainingAmount)}</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden mt-1">
+                    <div 
+                      className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full transition-all duration-1000"
+                      style={{ width: `${Math.min(paymentProgress, 100)}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-center text-xs text-slate-400 mt-2">
+                    {Math.round(paymentProgress)}% hoàn thành
+                  </div>
                 </div>
-              </section>
+              </div>
             </div>
           </div>
         </div>
 
+        {/* Payment Modal */}
         {showPaymentModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl w-full max-w-md relative z-10 overflow-hidden shadow-2xl border border-slate-100">
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                <h3 className="text-xl font-bold text-slate-900">Xác nhận thanh toán</h3>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl w-full max-w-md relative shadow-2xl border border-slate-100 animate-in slide-in-from-bottom-4 duration-300">
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-indigo-50/50 to-purple-50/50 rounded-t-2xl">
+                <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-indigo-600" />
+                  Xác nhận thanh toán
+                </h3>
                 <button
                   onClick={() => setShowPaymentModal(false)}
-                  className="text-slate-400 hover:text-slate-600 transition-colors"
+                  className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1 rounded-lg transition-all"
                 >
                   <X className="w-6 h-6" />
                 </button>
               </div>
 
               <form className="p-6 space-y-6" onSubmit={handlePayment}>
-                {/* Thông tin học sinh */}
-                <div className="bg-slate-50 rounded-xl p-4 space-y-2">
+                {/* Student Info */}
+                <div className="bg-slate-50 rounded-xl p-4 space-y-2 border border-slate-100">
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-500">Học sinh:</span>
                     <span className="font-medium text-slate-900">{data.studentName}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Mã số:</span>
-                    <span className="font-medium text-slate-900">{data.studentCode}</span>
-                  </div>
+
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-500">Lớp:</span>
                     <span className="font-medium text-slate-900">Lớp {data.grade}</span>
                   </div>
+                  <div className="flex justify-between text-sm pt-2 border-t border-slate-200">
+                    <span className="text-slate-500">Số tiền còn lại:</span>
+                    <span className="font-bold text-amber-600">{formatCurrency(data.remainingAmount)}</span>
+                  </div>
                 </div>
 
-                {/* Số tiền */}
+                {/* Amount Input */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
                     Số tiền thanh toán
                   </label>
                   <div className="relative">
                     <input
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-lg font-bold text-slate-900 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-lg font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
                       type="text"
                       value={new Intl.NumberFormat('vi-VN').format(parseInt(paymentAmount.replace(/\D/g, '')) || 0)}
                       onChange={(e) => {
@@ -674,47 +562,48 @@ export const TuitionDetailPage: React.FC = () => {
                         setPaymentAmount(value);
                       }}
                       placeholder="Nhập số tiền..."
+                      autoFocus
                     />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">VNĐ</span>
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 font-semibold text-slate-400">VNĐ</span>
                   </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <p className="text-[10px] text-orange-600 font-semibold">
-                      * Số tiền tối đa: {formatCurrency(data.remainingAmount)}
+                  <div className="flex items-center justify-between mt-2.5">
+                    <p className="text-xs text-amber-600 font-medium">
+                      * Tối đa: {formatCurrency(data.remainingAmount)}
                     </p>
                     <button
                       type="button"
                       onClick={() => setPaymentAmount(data.remainingAmount.toString())}
-                      className="text-[10px] text-purple-600 font-semibold hover:underline"
+                      className="text-xs text-indigo-600 font-semibold hover:text-indigo-700 transition-colors"
                     >
                       Thanh toán toàn bộ
                     </button>
                   </div>
                 </div>
 
-                {/* Phương thức thanh toán - Chỉ hiển thị thông tin */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">
-                    Phương thức thanh toán
-                  </label>
-                  <div className="bg-slate-50 rounded-xl p-3 text-sm text-slate-600">
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium">
-                        <CheckCircle className="w-3 h-3" />
-                        Xác nhận qua admin
-                      </span>
-                      <span className="text-xs text-slate-400">(Ghi nhận thanh toán)</span>
-                    </div>
+                {/* Payment Method Info */}
+                <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
+                  <div className="flex items-center gap-2 text-sm text-emerald-700">
+                    <CheckCircle className="w-4 h-4" />
+                    <span className="font-medium">Xác nhận qua admin</span>
+                    <span className="text-xs text-emerald-500 ml-auto">(Ghi nhận thanh toán)</span>
                   </div>
                 </div>
 
-                {/* Nút xác nhận */}
-                <div className="pt-2">
+                {/* Actions */}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowPaymentModal(false)}
+                    className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition-all"
+                  >
+                    Hủy bỏ
+                  </button>
                   <button
                     type="submit"
-                    className="w-full py-4 bg-purple-600 text-white font-bold rounded-xl shadow-lg shadow-purple-600/30 hover:bg-purple-700 hover:scale-[1.01] active:scale-[0.99] transition-all"
+                    className="flex-1 py-3.5 btn-gradient text-white font-semibold rounded-xl transition-all shadow-lg shadow-indigo-600/20"
                   >
                     <CheckCircle className="w-5 h-5 inline mr-2" />
-                    Xác nhận thanh toán
+                    Xác nhận
                   </button>
                 </div>
               </form>
@@ -722,148 +611,14 @@ export const TuitionDetailPage: React.FC = () => {
           </div>
         )}
 
-        {/* Edit Modal */}
-        {/* Edit Modal */}
-        {showEditModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl w-full max-w-4xl relative z-10 overflow-hidden shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col">
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 flex-shrink-0">
-                <h3 className="text-xl font-bold text-slate-900">Điều chỉnh học phí học viên</h3>
-                <button
-                  onClick={() => setShowEditModal(false)}
-                  className="text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              <div className="p-6 overflow-y-auto flex-1">
-                <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
-                  <table className="w-full text-left text-sm">
-                    <thead>
-                      <tr className="bg-slate-50 text-slate-500">
-                        <th className="px-4 py-3 font-bold uppercase text-[11px] tracking-wider">Tên mục</th>
-                        <th className="px-4 py-3 font-bold uppercase text-[11px] tracking-wider">Số buổi</th>
-                        <th className="px-4 py-3 font-bold uppercase text-[11px] tracking-wider">Đơn giá</th>
-                        <th className="px-4 py-3 font-bold uppercase text-[11px] tracking-wider">Thành tiền</th>
-                        <th className="px-4 py-3 font-bold uppercase text-[11px] tracking-wider text-right">Hành động</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
-                      {editData.items.map((item, index) => (
-                        <tr key={item.id}>
-                          <td className="px-4 py-3">
-                            <input
-                              className="bg-transparent border-none focus:ring-0 w-full p-0 text-slate-900 font-medium"
-                              type="text"
-                              value={item.name}
-                              onChange={(e) => handleEditItemChange(index, 'name', e.target.value)}
-                              readOnly
-                            />
-                          </td>
-                          <td className="px-4 py-3">
-                            <input
-                              className="bg-transparent border border-slate-200 rounded-lg px-2 py-1 w-20 text-slate-900 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
-                              type="number"
-                              value={item.sessions}
-                              onChange={(e) => handleEditItemChange(index, 'sessions', parseInt(e.target.value) || 0)}
-                              min="0"
-                            />
-                          </td>
-                          <td className="px-4 py-3">
-                            <input
-                              className="bg-transparent border border-slate-200 rounded-lg px-2 py-1 w-28 text-slate-900 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
-                              type="number"
-                              value={item.unitPrice}
-                              onChange={(e) => handleEditItemChange(index, 'unitPrice', parseInt(e.target.value) || 0)}
-                              min="0"
-                            />
-                          </td>
-                          <td className="px-4 py-3">
-                            <input
-                              className="bg-transparent border border-slate-200 rounded-lg px-2 py-1 w-28 text-slate-900 font-bold text-purple-600 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
-                              type="number"
-                              value={item.total}
-                              onChange={(e) => handleEditItemChange(index, 'total', parseInt(e.target.value) || 0)}
-                              min="0"
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-right text-red-500">
-                            <button
-                              className="hover:text-red-700 transition-colors"
-                              title="Xóa mục này (chưa hỗ trợ)"
-                            >
-                              <Trash2 className="w-5 h-5 opacity-50 cursor-not-allowed" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot className="bg-slate-50/50">
-                      <tr>
-                        <td className="px-4 py-3 text-right font-medium text-slate-500" colSpan={3}>
-                          Tạm tính:
-                        </td>
-                        <td className="px-4 py-3 font-bold text-slate-900">
-                          {formatCurrency(editData.items.reduce((sum, item) => sum + (item.total || 0), 0))}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="px-4 py-3 text-right font-medium text-slate-500" colSpan={3}>
-                          Giảm trừ học bổng:
-                        </td>
-                        <td className="px-4 py-3 font-bold text-emerald-600">
-                          - {formatCurrency(editData.scholarship)}
-                        </td>
-                      </tr>
-                      <tr className="border-t border-slate-200">
-                        <td className="px-4 py-3 text-right font-bold text-lg text-slate-900" colSpan={3}>
-                          Tổng cộng:
-                        </td>
-                        <td className="px-4 py-3 font-bold text-2xl text-purple-600">
-                          {formatCurrency(editData.items.reduce((sum, item) => sum + (item.total || 0), 0) - editData.scholarship)}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-
-                <button
-                  className="mt-4 flex items-center gap-2 text-purple-600 text-sm font-bold hover:opacity-80 transition-all opacity-50 cursor-not-allowed"
-                  disabled
-                >
-                  <PlusCircle className="w-5 h-5" />
-                  Thêm mục mới (chưa hỗ trợ)
-                </button>
-              </div>
-
-              <div className="p-6 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50 flex-shrink-0">
-                <button
-                  onClick={() => setShowEditModal(false)}
-                  className="px-6 py-2 rounded-lg text-slate-500 font-bold hover:bg-slate-50 transition-all"
-                >
-                  Hủy bỏ
-                </button>
-                <button
-                  onClick={handleEdit}
-                  className="px-8 py-2 bg-purple-600 text-white rounded-lg font-bold shadow-lg shadow-purple-600/20 hover:bg-purple-700 transition-all flex items-center gap-2"
-                >
-                  <CheckCircle className="w-4 h-4" />
-                  Lưu thay đổi
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Loading Overlay */}
         {showLoadingOverlay && (
-          <div className="fixed inset-0 z-[200] bg-white/90 backdrop-blur-md flex flex-col items-center justify-center">
+          <div className="fixed inset-0 z-[200] bg-white/95 backdrop-blur-md flex flex-col items-center justify-center">
             <div className="relative w-24 h-24 mb-6">
-              <div className="absolute inset-0 rounded-full border-4 border-purple-500/10"></div>
-              <div className="absolute inset-0 rounded-full border-4 border-t-purple-600 animate-spin"></div>
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-indigo-500/20 to-purple-500/20 animate-pulse"></div>
+              <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-indigo-600 animate-spin"></div>
             </div>
-            <h2 className="text-2xl font-bold animate-pulse text-slate-900">Đang xử lý giao dịch...</h2>
+            <h2 className="text-2xl font-bold text-slate-900">Đang xử lý giao dịch...</h2>
             <p className="text-slate-500 mt-2 font-medium">Vui lòng không đóng trình duyệt</p>
           </div>
         )}

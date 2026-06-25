@@ -58,15 +58,15 @@ export function AdminHomePage() {
 
         {/* SVG Waves - Đặt phía sau với z-index thấp */}
         <div className="absolute bottom-0 left-0 w-full pointer-events-none z-0">
-          <svg 
-            className="relative w-full h-auto" 
-            xmlns="http://www.w3.org/2000/svg" 
+          <svg
+            className="relative w-full h-auto"
+            xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 1440 250"
             preserveAspectRatio="none"
           >
-            <path 
-              fill="#f3f5f7" 
-              fillOpacity="0.9" 
+            <path
+              fill="#f3f5f7"
+              fillOpacity="0.9"
               d="M0,256L48,240C96,224,192,192,288,186.7C384,181,480,203,576,208C672,213,768,203,864,186.7C960,171,1056,149,1152,138.7C1248,128,1344,128,1392,128L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"
             ></path>
           </svg>
@@ -119,12 +119,13 @@ export function AdminHomePage() {
           <QuickActions />
         </FadeInWhenVisible>
 
-        <div className="mt-6">
-          <FadeInWhenVisible delay={0.2}>
-            <ChartsSection />
-          </FadeInWhenVisible>
-        </div>
-
+        {/*
+<div className="mt-6">
+  <FadeInWhenVisible delay={0.2}>
+    <ChartsSection />
+  </FadeInWhenVisible>
+</div>
+*/}
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <FadeInWhenVisible delay={0.25}>

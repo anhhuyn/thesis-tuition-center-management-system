@@ -832,13 +832,7 @@ export const StudentDetailContent = ({
                   )}
                 </div>
 
-                <div className="p-2 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg">
-                  <div className="flex items-center justify-between mb-0.5">
-                    <Award size={14} className="text-emerald-600" />
-                    <span className="text-lg font-bold text-emerald-700">{studentData.academicData.averageScore}</span>
-                  </div>
-                  <p className="text-[10px] text-slate-600">Điểm trung bình</p>
-                </div>
+                
 
                 <div className="p-2 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg">
                   <div className="flex items-center justify-between mb-0.5">

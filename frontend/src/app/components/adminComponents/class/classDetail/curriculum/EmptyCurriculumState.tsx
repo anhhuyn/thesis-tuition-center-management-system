@@ -33,7 +33,7 @@ export const EmptyCurriculumState = ({
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={onCreate}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white text-sm font-medium rounded-xl shadow-md hover:shadow-lg transition-all"
+          className="flex items-center gap-2 px-5 py-2.5 btn-gradient text-white text-sm font-medium rounded-xl shadow-md hover:shadow-lg transition-all"
         >
           <Plus size={16} />
           Tạo lộ trình mới

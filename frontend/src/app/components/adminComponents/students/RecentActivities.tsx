@@ -123,7 +123,7 @@ const RecentActivities: React.FC<RecentActivitiesProps> = ({
     const fetchActivities = async () => {
       try {
         setLoading(true);
-        const data = await activityLogApi.getRecentActivities(20);
+        const data = await activityLogApi.getRecentActivities(100);
         
         // Lọc chỉ lấy STUDENT_LIST
         const filteredData = data.filter(

@@ -14,7 +14,6 @@ interface TuitionTableProps {
   month?: number;
   year?: number;
 }
-
 const TuitionTable: React.FC<TuitionTableProps> = ({
   invoices,
   loading,

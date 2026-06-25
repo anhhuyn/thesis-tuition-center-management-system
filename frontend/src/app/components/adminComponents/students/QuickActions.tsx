@@ -28,9 +28,9 @@ const QuickActions: React.FC<QuickActionsProps> = ({
   const actions: Action[] = [
     {
       icon: <Upload className="w-4 h-4" />,
-      title: 'Nhập danh sách',
-      subtitle: 'CSV/Excel',
-      onClick: onImport || (() => console.log('Nhập danh sách'))
+      title: 'Học phí',
+      subtitle: 'Thanh toán học phí',
+      onClick: onImport || (() => navigate('/admin/tuition'))
     },
     {
       icon: <PlusCircle className="w-4 h-4" />,

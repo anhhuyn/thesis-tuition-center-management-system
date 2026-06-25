@@ -81,7 +81,7 @@ export const ConfirmSubstituteModal = ({
                     <h3 className="text-xl font-bold">
                       {isAccept ? 'Xác nhận nhận dạy thay' : 'Từ chối dạy thay'}
                     </h3>
-                    <p className="text-white/80 text-sm">Mã yêu cầu: #{request.sessionId}</p>
+                 
                   </div>
                 </div>
                 <button

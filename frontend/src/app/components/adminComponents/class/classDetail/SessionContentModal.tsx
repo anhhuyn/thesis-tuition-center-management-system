@@ -482,7 +482,7 @@ export const SessionContentModal: React.FC<SessionContentModalProps> = ({
               onClick={handleSubmit}
               disabled={loading || (isFollowPlan && !selectedPlanId) || (!isFollowPlan && (!actualTopic.trim() || !actualContent.trim()))}
               className={clsx(
-                "px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white font-medium shadow-lg transition-all",
+                "px-5 py-2 rounded-xl btn-gradient text-white font-medium shadow-lg transition-all",
                 "hover:shadow-xl hover:shadow-indigo-500/25",
                 "disabled:opacity-50 disabled:cursor-not-allowed"
               )}
