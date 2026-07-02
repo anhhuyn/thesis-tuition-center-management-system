@@ -83,7 +83,7 @@ export default function CreateScheduleModal({
       setLoading(true);
       try {
         const res = await roomApi.getAll()
-        setRooms(res.data || [])
+      setRooms((res.data || []) as any);
       } catch (err) {
         console.error("Lỗi khi fetch phòng học:", err)
         setAlert?.({
@@ -228,26 +228,6 @@ export default function CreateScheduleModal({
       });
 
       if (res?.success === false) {
-        // Handle API validation errors
-        if (res.errors) {
-          const apiErrors: Record<string, string> = {};
-          Object.entries(res.errors).forEach(([key, value]) => {
-            if (typeof value === 'string') {
-              apiErrors[key] = value;
-            } else if (Array.isArray(value)) {
-              apiErrors[key] = value.join(', ');
-            }
-          });
-          setFieldErrors(apiErrors);
-          setErrors(apiErrors);
-          
-          // If no field-specific errors, show general error
-          if (Object.keys(apiErrors).length === 0) {
-            setErrors({ general: res.message || "Có lỗi xảy ra khi tạo lịch học!" });
-          }
-          return;
-        }
-
         setErrors({ general: res.message || "Có lỗi xảy ra khi tạo lịch học!" });
         setAlert?.({
           type: "error",

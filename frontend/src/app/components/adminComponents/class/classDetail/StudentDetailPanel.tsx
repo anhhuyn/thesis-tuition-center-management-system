@@ -2,9 +2,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "../../../utils/cn";
-import { formatDate } from "../../../utils/helpers";
-import type { StudentSubject } from "../../../utils/types/studentSubject";
-import type { Subject } from "../../../utils/types/subject";
+import { formatDate } from "../../../../utils/helpers";
+import type { StudentSubject } from "../../../../utils/types/studentSubject";
+import type { Subject } from "../../../../utils/types/subject";
 import {
   X,
   User,

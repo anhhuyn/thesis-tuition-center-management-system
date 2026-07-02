@@ -1,7 +1,7 @@
 // AddStudentModal.tsx
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Plus, Search, UserPlus, School, Calendar, Users, ChevronRight, Check, CheckSquare, Square } from "lucide-react";
+import { X, Search, UserPlus, School, Calendar, Users, ChevronRight, Check, CheckSquare, Square } from "lucide-react";
 import { studentSubjectApi } from "../../../../utils/api";
 import type { StudentSubject } from "../../../../utils/types/studentSubject";
 import { useOutletContext } from "react-router-dom";
@@ -144,13 +144,19 @@ export const AddStudentModal = ({
       opacity: 1,
       scale: 1,
       y: 0,
-      transition: { duration: 0.3, ease: "easeOut" },
+      transition: {
+        duration: 0.3,
+        ease: "easeOut"
+      } as any,
     },
     exit: {
       opacity: 0,
       scale: 0.95,
       y: 20,
-      transition: { duration: 0.2, ease: "easeIn" },
+      transition: {
+        duration: 0.2,
+        ease: "easeIn"
+      } as any,
     },
   };
 

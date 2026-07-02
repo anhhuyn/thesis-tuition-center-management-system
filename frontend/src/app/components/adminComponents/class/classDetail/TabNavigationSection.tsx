@@ -6,7 +6,6 @@ import {
   Calendar,
   FileText,
   CheckSquare,
-  BarChart3,
   BookOpen,
 } from "lucide-react";
 import type { Subject } from "../../../../utils/types/subject";

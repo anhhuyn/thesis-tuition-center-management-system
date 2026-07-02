@@ -19,6 +19,8 @@ export interface AttendanceItem {
 export interface StudentAttendance {
   studentId: number
   fullName: string
+  gender: boolean | null;     
+  schoolName: string | null;   
   attendances: AttendanceItem[]
   enrollmentDate?: string  
   deletedAt?: string | null  

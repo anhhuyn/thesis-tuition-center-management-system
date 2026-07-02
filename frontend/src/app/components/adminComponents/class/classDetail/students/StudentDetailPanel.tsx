@@ -21,13 +21,7 @@ const getStudentDetailData = (student: StudentSubject) => ({
     fullName: student.fullName,
     dateOfBirth: student.dateOfBirth,
     gender: student.gender,
-    phone: student.phoneNumber || "Chưa cập nhật",
-    email: student.email || "Chưa cập nhật",
-    address: student.address || "Chưa cập nhật",
     schoolName: student.schoolName || "Chưa có",
-    studentCode: student.studentCode || student.id.toString(),
-    parentName: student.parentName || "Chưa cập nhật",
-    parentPhone: student.parentPhone || "Chưa cập nhật",
   },
   academicData: {
     overallProgress: 78,
@@ -116,7 +110,6 @@ export const StudentDetailPanel = ({ student, subject, onClose, onProgressUpdate
                   {student.gender === true ? "Nam" : "Nữ"}
                 </span>
                 <span className="text-[10px] text-slate-400">•</span>
-                <span className="text-[10px] text-slate-500">Mã HS: HS{studentData.personalInfo.studentCode}</span>
               </div>
             </div>
           </div>

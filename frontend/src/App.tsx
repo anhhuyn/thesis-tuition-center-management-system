@@ -15,17 +15,13 @@ import { SchedulePage } from './app/pages/admin/SchedulePage';
 import { useState } from 'react';
 import { StudentDetail } from './app/pages/admin/StudentDetail';
 import RoomPage from './app/pages/admin/RoomPage';
-import { LibraryPage } from './app/pages/admin/LibraryPage';
 import { TeacherClassListPage } from './app/pages/teacher/TeacherClassListPage';
 import { TeacherLayout } from './app/pages/teacher/TeacherLayout';
 import { TeacherSchedule } from './app/pages/teacher/TeacherSchedule';
-import TeacherHome from './app/pages/teacher/TeacherHomePage';
 import { TeacherManagementPage } from './app/pages/admin/teachers/TeacherManagementPage';
-import { TeacherCardViewPage } from './app/pages/admin/teachers/TeacherCardViewPage';
 import { TeacherDetailPage } from './app/pages/admin/teachers/TeacherDetailPage';
 import { SalaryManagementPage } from './app/pages/admin/contract/SalaryManagementPage';
 import { SalaryAgreementDetailPage } from './app/pages/admin/contract/SalaryAgreementDetailPage';
-import { LeaveCalendarPage } from './app/pages/admin/leaves/LeaveCalendarPage';
 import { LeaveRequestDetail } from './app/pages/admin/leaves/LeaveRequestDetail';
 import { LeaveManagementPage } from './app/pages/admin/leaves/LeaveManagementPage';
 import { TeacherLeaveManagementPage } from './app/pages/teacher/TeacherLeaveManagementPage';
@@ -101,15 +97,7 @@ function App() {
             }
           />
 
-          {/* Quản lý giáo viên - Dạng thẻ (Card View) */}
-          <Route
-            path="teacher/cards"
-            element={
-              <ProtectedRoute>
-                <TeacherCardViewPage />
-              </ProtectedRoute>
-            }
-          />
+         
           <Route
             path="teacher/:id"
             element={

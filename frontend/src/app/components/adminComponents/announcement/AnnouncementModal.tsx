@@ -11,6 +11,7 @@ import {
 import type { Announcement } from "../../../utils/types/announcement";
 import { getImageSrc } from "../../../utils/helpers";
 
+// Định nghĩa kiểu dữ liệu cho file đính kèm
 interface Attachment {
   id: string;
   file: File;
@@ -24,7 +25,7 @@ interface AnnouncementModalProps {
   isEditing?: boolean;
   initialData?: Announcement | null;
   onSubmit?: (formData: FormData) => Promise<void>;
-  adminId?: number; // Thêm adminId từ component cha
+  adminId?: number;
 }
 
 const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
@@ -33,24 +34,30 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
   isEditing = false,
   initialData,
   onSubmit,
-  adminId = 1, // Giá trị mặc định, bạn nên lấy từ context/auth
+  adminId = 1,
 }) => {
+  // State quản lý form
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [status, setStatus] = useState<"active" | "inactive" | "draft">("draft");
   const [pinned, setPinned] = useState(false);
+
+  // State cho ảnh
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [existingImageURL, setExistingImageURL] = useState<string | null>(null);
+
+  // State cho file đính kèm
   const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [existingAttachments, setExistingAttachments] = useState<{ name: string; url: string }[]>([]);
+
+  // State cho UI
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ title?: string; content?: string }>({});
 
+  // Ref cho input file
   const imageInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
 
-  // Load initial data when editing
+  // Load dữ liệu khi chỉnh sửa
   useEffect(() => {
     if (initialData && isEditing) {
       setTitle(initialData.title);
@@ -58,28 +65,21 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
       setStatus(initialData.status);
       setPinned(initialData.pinned);
 
+      // Hiển thị ảnh cũ nếu có
       if (initialData.imageURL) {
-        setExistingImageURL(initialData.imageURL);
         setImagePreview(getImageSrc(initialData.imageURL));
-      }
-
-      if (initialData.attachments && initialData.attachments.length > 0) {
-        const existing = initialData.attachments.map(url => ({
-          name: url.split('/').pop() || 'unknown',
-          url: url
-        }));
-        setExistingAttachments(existing);
       }
     }
   }, [initialData, isEditing]);
 
-  // Reset form when modal closes
+  // Reset form khi đóng modal
   useEffect(() => {
     if (!isOpen) {
       resetForm();
     }
   }, [isOpen]);
 
+  // Hàm reset toàn bộ form
   const resetForm = () => {
     setTitle("");
     setContent("");
@@ -87,12 +87,11 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
     setPinned(false);
     setImage(null);
     setImagePreview(null);
-    setExistingImageURL(null);
     setAttachments([]);
-    setExistingAttachments([]);
     setErrors({});
   };
 
+  // Validate dữ liệu trước khi submit
   const validateForm = (): boolean => {
     const newErrors: { title?: string; content?: string } = {};
     if (!title.trim()) newErrors.title = "Tiêu đề không được để trống";
@@ -101,27 +100,29 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
+  // Xử lý upload ảnh
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Kiểm tra kích thước ảnh (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         alert("Kích thước ảnh không được vượt quá 5MB");
         return;
       }
+      // Kiểm tra định dạng ảnh
       if (!file.type.startsWith("image/")) {
         alert("Vui lòng chọn file hình ảnh");
         return;
       }
       setImage(file);
-      setExistingImageURL(null);
       const preview = URL.createObjectURL(file);
       setImagePreview(preview);
     }
   };
 
+  // Xóa ảnh đã chọn
   const removeImage = () => {
     setImage(null);
-    setExistingImageURL(null);
     if (imagePreview) {
       URL.revokeObjectURL(imagePreview);
       setImagePreview(null);
@@ -131,14 +132,17 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
     }
   };
 
+  // Xử lý upload file đính kèm
   const handleAttachmentsUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    // Lọc file có dung lượng <= 10MB
     const validFiles = files.filter((file) => file.size <= 10 * 1024 * 1024);
 
     if (validFiles.length !== files.length) {
       alert("Một số file vượt quá 10MB và đã bị bỏ qua");
     }
 
+    // Tạo danh sách attachment mới
     const newAttachments: Attachment[] = validFiles.map((file) => ({
       id: Math.random().toString(36).substr(2, 9),
       file,
@@ -152,14 +156,12 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
     }
   };
 
+  // Xóa file đính kèm
   const removeAttachment = (id: string) => {
     setAttachments((prev) => prev.filter((att) => att.id !== id));
   };
 
-  const removeExistingAttachment = (url: string) => {
-    setExistingAttachments((prev) => prev.filter(att => att.url !== url));
-  };
-
+  // Format dung lượng file
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
@@ -168,13 +170,14 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
+  // Xử lý submit form
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
     setIsLoading(true);
     const formData = new FormData();
 
-    // Tạo data object (CHỈ chứa text fields)
+    // Đóng gói dữ liệu chính
     const data = {
       adminId: adminId,
       title: title,
@@ -182,16 +185,14 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
       status: status,
       pinned: pinned,
     };
+    formData.append("data", JSON.stringify(data));
 
-    // Append data dưới dạng JSON string (KHÔNG phải File)
-    formData.append("data", JSON.stringify(data));  // 👈 Dùng JSON.stringify trực tiếp
-
-    // Append image file (nếu có)
+    // Thêm ảnh nếu có
     if (image) {
       formData.append("imageFile", image);
     }
 
-    // Append attachment files (nếu có)
+    // Thêm các file đính kèm
     attachments.forEach((att) => {
       formData.append("attachments", att.file);
     });
@@ -200,9 +201,9 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
       if (onSubmit) {
         await onSubmit(formData);
       }
-      onClose();
+      onClose(); // Đóng modal sau khi submit thành công
     } catch (error) {
-      console.error("Error submitting form:", error);
+      console.error("Lỗi khi submit form:", error);
       alert("Có lỗi xảy ra khi tạo thông báo");
     } finally {
       setIsLoading(false);
@@ -213,7 +214,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
+          {/* Lớp phủ nền */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -222,7 +223,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
           />
 
-          {/* Modal */}
+          {/* Modal chính */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -232,7 +233,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
-              {/* Header */}
+              {/* Header - tiêu đề modal */}
               <div className="flex items-center justify-between p-6 border-b border-gray-100">
                 <h2 className="text-xl font-semibold text-gray-900">
                   {isEditing ? "Chỉnh sửa thông báo" : "Tạo thông báo mới"}
@@ -245,9 +246,9 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
                 </button>
               </div>
 
-              {/* Content */}
+              {/* Nội dung form */}
               <div className="flex-1 overflow-y-auto p-6 space-y-5">
-                {/* Title Field */}
+                {/* Trường tiêu đề */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Tiêu đề <span className="text-red-500">*</span>
@@ -265,7 +266,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
                   )}
                 </div>
 
-                {/* Content Field */}
+                {/* Trường nội dung */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Nội dung <span className="text-red-500">*</span>
@@ -283,12 +284,13 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
                   )}
                 </div>
 
-                {/* Image Upload */}
+                {/* Upload ảnh */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Hình ảnh
                   </label>
                   {imagePreview ? (
+                    // Hiển thị preview ảnh
                     <div className="relative rounded-xl overflow-hidden border border-gray-200">
                       <img
                         src={imagePreview}
@@ -303,6 +305,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
                       </button>
                     </div>
                   ) : (
+                    // Nút upload ảnh
                     <button
                       onClick={() => imageInputRef.current?.click()}
                       className="w-full h-32 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 group"
@@ -328,42 +331,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
                   />
                 </div>
 
-                {/* Existing Attachments */}
-                {existingAttachments.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-gray-500">
-                      TỆP HIỆN TẠI ({existingAttachments.length})
-                    </p>
-                    {existingAttachments.map((attachment, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100"
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="p-2 bg-white rounded-lg">
-                            <File size={16} className="text-blue-500" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-700 truncate">
-                              {attachment.name}
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => removeExistingAttachment(attachment.url)}
-                          className="p-1.5 hover:bg-red-100 rounded-lg transition-colors duration-200 group"
-                        >
-                          <Trash2
-                            size={16}
-                            className="text-gray-400 group-hover:text-red-500 transition-colors duration-200"
-                          />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* New Attachments Upload */}
+                {/* Upload file đính kèm */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {isEditing ? "Thêm tệp đính kèm mới" : "Tệp đính kèm"}
@@ -389,7 +357,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
                   />
                 </div>
 
-                {/* New Attachments List */}
+                {/* Danh sách file đính kèm mới */}
                 {attachments.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-xs font-medium text-gray-500">
@@ -430,7 +398,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
                   </div>
                 )}
 
-                {/* Pin Checkbox */}
+                {/* Checkbox ghim bài viết */}
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -444,7 +412,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
                   </label>
                 </div>
 
-                {/* Status Dropdown */}
+                {/* Dropdown chọn trạng thái */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Trạng thái
@@ -480,7 +448,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
                 </div>
               </div>
 
-              {/* Footer */}
+              {/* Footer - nút hành động */}
               <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-100 bg-gray-50">
                 <button
                   onClick={onClose}

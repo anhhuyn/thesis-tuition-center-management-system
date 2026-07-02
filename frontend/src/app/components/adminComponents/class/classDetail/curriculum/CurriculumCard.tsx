@@ -78,8 +78,6 @@ export const CurriculumCard = ({
     })
   );
 
-  const completedCount = localSessions.filter((s) => s.isCompleted).length;
-  const progress = (completedCount / curriculum.expectedSessions) * 100;
 
   const handleStatusChange = async (sessionId: number, completed: boolean) => {
     if (onProgressUpdate) {
@@ -170,8 +168,8 @@ export const CurriculumCard = ({
                   {curriculum.difficulty === "beginner"
                     ? "Cơ bản"
                     : curriculum.difficulty === "intermediate"
-                      ? "Trung cấp"
-                      : "Nâng cao"}
+                    ? "Trung cấp"
+                    : "Nâng cao"}
                 </span>
               )}
               <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
@@ -215,35 +213,25 @@ export const CurriculumCard = ({
                 </button>
               </>
             )}
-            <div className="text-right">
-              <div className="text-sm font-bold text-slate-800">
-                {completedCount}/{curriculum.expectedSessions}
-              </div>
-              <div className="text-xs text-slate-400">buổi đã học</div>
-            </div>
-            <div className="w-32">
-              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.5, ease: "easeOut" }}
-                  className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-400"
+            <div className="ml-auto flex items-center gap-2">
+              <span className="text-sm font-bold text-slate-800">
+                {localSessions.length}{" "}
+                <span className="text-xs font-normal text-slate-400">
+                  bài học
+                </span>
+              </span>
+
+              {isReordering ? (
+                <Loader2 size={18} className="text-indigo-500 animate-spin" />
+              ) : expanded ? (
+                <ChevronUp size={18} className="text-slate-400" />
+              ) : (
+                <ChevronDown
+                  size={18}
+                  className="text-slate-400 group-hover:text-indigo-500 transition-colors"
                 />
-              </div>
-              <div className="text-[10px] text-slate-400 mt-0.5 text-right">
-                {Math.round(progress)}%
-              </div>
+              )}
             </div>
-            {isReordering ? (
-              <Loader2 size={18} className="text-indigo-500 animate-spin" />
-            ) : expanded ? (
-              <ChevronUp size={18} className="text-slate-400" />
-            ) : (
-              <ChevronDown
-                size={18}
-                className="text-slate-400 group-hover:text-indigo-500 transition-colors"
-              />
-            )}
           </div>
         </div>
       </div>

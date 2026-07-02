@@ -292,14 +292,7 @@ const TeacherTable: React.FC<TeacherTableProps> = ({
                               </span>
                             </div>
                           )}
-                          {teacher.department && (
-                            <div className="flex items-center gap-1.5">
-                              <School size={11} className="text-slate-400 flex-shrink-0" />
-                              <span className="text-[11px] text-slate-600 truncate max-w-[120px]">
-                                {teacher.department}
-                              </span>
-                            </div>
-                          )}
+                          
                         </div>
                       </div>
                     </div>
@@ -367,10 +360,7 @@ const TeacherTable: React.FC<TeacherTableProps> = ({
                           {teacher.address && (
                             <div className="flex items-start gap-2">
                               <MapPin size={14} className="text-slate-400 mt-0.5 flex-shrink-0" />
-                              <div>
-                                <p className="text-[10px] font-medium text-slate-500">Địa chỉ</p>
-                                <p className="text-xs text-slate-700">{teacher.address}</p>
-                              </div>
+                            
                             </div>
                           )}
 
@@ -381,17 +371,6 @@ const TeacherTable: React.FC<TeacherTableProps> = ({
                               <div>
                                 <p className="text-[10px] font-medium text-slate-500">Chuyên môn</p>
                                 <p className="text-xs text-slate-700">{teacher.specialty}</p>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Department */}
-                          {teacher.department && (
-                            <div className="flex items-start gap-2">
-                              <School size={14} className="text-slate-400 mt-0.5 flex-shrink-0" />
-                              <div>
-                                <p className="text-[10px] font-medium text-slate-500">Khoa</p>
-                                <p className="text-xs text-slate-700">{teacher.department}</p>
                               </div>
                             </div>
                           )}
@@ -409,18 +388,7 @@ const TeacherTable: React.FC<TeacherTableProps> = ({
                             </div>
                           )}
 
-                          {/* Join Date */}
-                          {teacher.joinDate && (
-                            <div className="flex items-start gap-2">
-                              <Calendar size={14} className="text-slate-400 mt-0.5 flex-shrink-0" />
-                              <div>
-                                <p className="text-[10px] font-medium text-slate-500">Ngày tham gia</p>
-                                <p className="text-xs text-slate-700">
-                                  {formatDate(teacher.joinDate)}
-                                </p>
-                              </div>
-                            </div>
-                          )}
+                         
                         </div>
                       </motion.div>
                     )}

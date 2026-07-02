@@ -36,7 +36,7 @@ export const attendanceApi = {
   getStudentAttendanceStatistics(
     studentId: number,
     subjectId: number
-  ): Promise<ApiResponse<AttendanceStatistics>> {
+  ): Promise<AttendanceStatistics> {
     return axios.get(`/attendance/statistics/student/${studentId}/subject/${subjectId}`)
   },
 }

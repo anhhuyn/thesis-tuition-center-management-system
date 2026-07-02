@@ -23,7 +23,7 @@ export const useTeacherLeave = () => {
   const fetchLeaves = useCallback(async (page = 1, status?: string) => {
     setLoading(true);
     try {
-      const response = await teacherLeaveApi.getAll({ page, size: 10, status });
+      const response = await teacherLeaveApi.getAll({ page, size: 10, status: status as any  });
       setLeaves(response.data);
       setPagination(response.pagination);
     } catch (error) {

@@ -257,35 +257,7 @@ export const MaterialSection = memo(({ subject, isTeacher = false }: MaterialSec
                             </div>
                         </motion.div>
 
-                        {/* Featured Banner */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.15 }}
-                            whileHover={{ y: -2 }}
-                            className="relative overflow-hidden bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 rounded-xl border border-indigo-100 dark:border-indigo-800/50 p-4 cursor-pointer group"
-                        >
-                            <div className="flex items-start gap-3">
-                                <div className="w-10 h-10 btn-gradient rounded-xl flex items-center justify-center shadow-md shadow-indigo-200 dark:shadow-indigo-900/30 flex-shrink-0">
-                                    <Sparkles className="text-white" size={18} />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <h3 className="text-indigo-900 dark:text-indigo-300 font-bold text-sm mb-0.5">
-                                        Tài liệu trọng tâm ôn thi
-                                    </h3>
-                                    <p className="text-indigo-600 dark:text-indigo-400 text-xs leading-relaxed line-clamp-1">
-                                        Tổng hợp 10 dạng bài tập ma trận thường gặp
-                                    </p>
-                                </div>
-                                <motion.button
-                                    whileHover={{ x: 4 }}
-                                    className="text-indigo-600 dark:text-indigo-400 text-xs font-semibold flex items-center gap-1 flex-shrink-0"
-                                >
-                                    Xem <ArrowRight size={12} />
-                                </motion.button>
-                            </div>
-                        </motion.div>
-
+                      
                         {/* Materials Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                             {loading ? (

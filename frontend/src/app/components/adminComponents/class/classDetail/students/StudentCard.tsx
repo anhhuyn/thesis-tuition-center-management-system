@@ -16,7 +16,7 @@ type StudentCardProps = {
   onEdit: () => void;
   onRemove: () => void;
   isTeacher: boolean;
-  overallProgress?: number; // Thêm prop cho tiến độ tổng thể
+  overallProgress?: number; 
 };
 
 export const StudentCard = ({
@@ -28,12 +28,11 @@ export const StudentCard = ({
   onEdit,
   onRemove,
   isTeacher,
-  overallProgress = 0 // Mặc định là 0 nếu chưa có dữ liệu
+  overallProgress = 0 
 }: StudentCardProps) => {
-  // Sử dụng overallProgress từ prop thay vì random
+
   const progress = overallProgress;
-  // Kiểm tra xem đã có đánh giá hay chưa (progress = 0 và chưa có curriculum nào được đánh giá)
-  const hasEvaluation = overallProgress > 0 || student.hasAnyEvaluation === true;
+  const hasEvaluation = overallProgress > 0 || (student as any).hasAnyEvaluation === true;
   const status = getStatusLabel(progress, hasEvaluation);
 
   return (

@@ -132,11 +132,9 @@ export const StudentDetailContent = ({
     setLoadingAttendance(true);
     try {
       const response = await attendanceApi.getStudentAttendanceStatistics(studentId, subjectId);
-      console.log('Attendance API response:', response);
 
       if (response) {
         setAttendanceStats(response);
-        console.log('Set attendance stats successfully:', response);
       } else {
         console.warn("Unexpected response structure:", response);
       }

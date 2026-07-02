@@ -1,6 +1,6 @@
 // StudentDetailTabs.tsx
 import { cn } from "../../../../../utils/cn";
-import { User, BookOpen, Calendar as CalendarIcon, Award, ClipboardCheck } from "lucide-react";
+import { User, BookOpen, Calendar as CalendarIcon } from "lucide-react";
 
 type Tab = "overview" | "academic" | "attendance" | "scores" | "feedback";
 

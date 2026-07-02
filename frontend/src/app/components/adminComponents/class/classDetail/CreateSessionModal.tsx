@@ -82,7 +82,7 @@ export default function CreateSessionModal({
       setLoading(true);
       try {
         const res = await roomApi.getAll();
-        setRooms(res.data || []);
+        setRooms((res.data || []) as any);
       } catch (err) {
         console.error("Lỗi khi tải danh sách phòng:", err);
         setAlert?.({
@@ -152,7 +152,7 @@ export default function CreateSessionModal({
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const sessionDateObj = new Date(sessionDate);
-      
+
       if (sessionDateObj < today && !isEdit) {
         newErrors.sessionDate = "Không thể tạo buổi học trong quá khứ";
         newFieldErrors.sessionDate = "Không thể tạo buổi học trong quá khứ";
@@ -198,25 +198,6 @@ export default function CreateSessionModal({
         res = await subjectScheduleApi.updateSession(sessionId, updateData);
 
         if (res?.success === false) {
-          // Handle API validation errors
-          if (res.errors) {
-            const apiErrors: Record<string, string> = {};
-            Object.entries(res.errors).forEach(([key, value]) => {
-              if (typeof value === 'string') {
-                apiErrors[key] = value;
-              } else if (Array.isArray(value)) {
-                apiErrors[key] = value.join(', ');
-              }
-            });
-            setFieldErrors(apiErrors);
-            setErrors(apiErrors);
-            
-            // Show general error if no field-specific errors
-            if (Object.keys(apiErrors).length === 0) {
-              setErrors({ general: res.message || "Có lỗi xảy ra khi cập nhật buổi học!" });
-            }
-            return;
-          }
 
           setErrors({ general: res.message || "Có lỗi xảy ra khi cập nhật buổi học!" });
           return;
@@ -238,25 +219,6 @@ export default function CreateSessionModal({
         res = await subjectScheduleApi.addManualSession(addData);
 
         if (res?.success === false) {
-          // Handle API validation errors
-          if (res.errors) {
-            const apiErrors: Record<string, string> = {};
-            Object.entries(res.errors).forEach(([key, value]) => {
-              if (typeof value === 'string') {
-                apiErrors[key] = value;
-              } else if (Array.isArray(value)) {
-                apiErrors[key] = value.join(', ');
-              }
-            });
-            setFieldErrors(apiErrors);
-            setErrors(apiErrors);
-            
-            if (Object.keys(apiErrors).length === 0) {
-              setErrors({ general: res.message || "Có lỗi xảy ra khi tạo buổi học!" });
-            }
-            return;
-          }
-
           setErrors({ general: res.message || "Có lỗi xảy ra khi tạo buổi học!" });
           return;
         }
@@ -271,10 +233,10 @@ export default function CreateSessionModal({
       onClose();
     } catch (error: any) {
       console.error("Lỗi khi lưu session:", error);
-      
+
       // Handle network errors or other exceptions
       const errorMessage = error?.response?.data?.message || error?.message || "Có lỗi xảy ra khi lưu buổi học!";
-      
+
       // Check if it's a validation error from the server
       if (error?.response?.data?.errors) {
         const apiErrors: Record<string, string> = {};
@@ -304,7 +266,7 @@ export default function CreateSessionModal({
   const renderError = (field: keyof Errors) => {
     const error = errors[field] || fieldErrors[field];
     if (!error) return null;
-    
+
     return (
       <motion.p
         initial={{ opacity: 0, y: -5 }}
@@ -580,10 +542,10 @@ export default function CreateSessionModal({
                     <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
                       <span className="text-indigo-500 dark:text-indigo-400 font-medium min-w-[65px]">Trạng thái</span>
                       <span className={`font-semibold px-2 py-0.5 rounded-full text-[11px] ${formData.status === 'completed'
-                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                          : formData.status === 'canceled'
-                            ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'
-                            : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                        : formData.status === 'canceled'
+                          ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'
+                          : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                         }`}>
                         {STATUS_OPTIONS.find(s => s.value === formData.status)?.label || '---'}
                       </span>

@@ -1,7 +1,7 @@
 // src/components/class/CurriculumSection.tsx
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { Plus, Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { Plus, Loader2, AlertCircle, RefreshCw, BookOpen } from "lucide-react";
 import { cn } from "../../../../utils/cn";
 import { toast } from "react-hot-toast";
 import type { Subject } from "../../../../utils/types/subject";
@@ -45,7 +45,6 @@ export const CurriculumSection = ({ subject, isTeacher = false }: Props) => {
     sessions: any[];
   } | null>(null);
 
-  // State for Session Modal
   const [sessionModal, setSessionModal] = useState<{
     isOpen: boolean;
     mode: "create" | "edit";
@@ -258,7 +257,6 @@ export const CurriculumSection = ({ subject, isTeacher = false }: Props) => {
     setIsFormModalOpen(true);
   };
 
-  // Session CRUD handlers
   const handleAddSessionClick = (curriculumId: number, curriculumTitle: string) => {
     setSessionModal({
       isOpen: true,
@@ -360,6 +358,19 @@ export const CurriculumSection = ({ subject, isTeacher = false }: Props) => {
     }
   };
 
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if ((e.key === 'c' || e.key === 'C') && isTeacher) {
+        e.preventDefault();
+        setIsFormModalOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isTeacher]);
+
   if (!subject) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -405,21 +416,10 @@ export const CurriculumSection = ({ subject, isTeacher = false }: Props) => {
       animate={{ opacity: 1 }}
       className="flex flex-col gap-6 pb-10 px-10"
     >
-      {/* Header with Create Button */}
       <div className="flex justify-between items-center">
-        {isTeacher && (
-          <button
-            onClick={() => setIsFormModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-md hover:bg-indigo-600 hover:shadow-lg transition-all"
-          >
-            <Plus size={16} />
-            Thêm lộ trình
-          </button>
-        )}
         <div className="flex-1" />
       </div>
 
-      {/* Stats Card - chỉ hiển thị nếu có lộ trình */}
       {curriculums.length > 0 && (
         <StatsCard
           stats={stats}
@@ -432,7 +432,6 @@ export const CurriculumSection = ({ subject, isTeacher = false }: Props) => {
         />
       )}
 
-      {/* Curriculum list */}
       <div
         className={cn(
           "space-y-4",
@@ -483,10 +482,6 @@ export const CurriculumSection = ({ subject, isTeacher = false }: Props) => {
         )}
       </div>
 
-      {/* Legend - chỉ hiển thị nếu có lộ trình */}
-      {curriculums.length > 0 && <Legend isTeacher={isTeacher} />}
-
-      {/* Curriculum Form Modal */}
       <CurriculumFormModal
         isOpen={isFormModalOpen}
         onClose={() => {
@@ -519,7 +514,6 @@ export const CurriculumSection = ({ subject, isTeacher = false }: Props) => {
         isEditing={!!editingCurriculum}
       />
 
-      {/* Session Form Modal */}
       <SessionFormModal
         isOpen={sessionModal.isOpen}
         onClose={() => setSessionModal(prev => ({ ...prev, isOpen: false }))}
@@ -529,6 +523,41 @@ export const CurriculumSection = ({ subject, isTeacher = false }: Props) => {
         curriculumTitle={sessionModal.curriculumTitle}
         sessionIndex={sessionModal.sessionIndex}
       />
+
+      {isTeacher && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <motion.button
+            onClick={() => setIsFormModalOpen(true)}
+            className="relative w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-600 text-white shadow-2xl shadow-indigo-500/40 dark:shadow-indigo-600/50 backdrop-blur-sm overflow-hidden focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 dark:focus:ring-offset-slate-900 transition-all duration-300"
+            animate={{
+              y: [0, -3, 0, -2, 0],
+            }}
+            transition={{
+              duration: 2.5,
+              repeat: Infinity,
+              repeatType: "reverse",
+              ease: "easeInOut",
+            }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <motion.div
+              className="absolute inset-0 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              style={{ filter: "blur(8px)" }}
+            />
+            
+            <div className="relative z-10 flex items-center justify-center w-full h-full">
+              <BookOpen size={24} strokeWidth={1.8} />
+            </div>
+
+            <motion.span
+              className="absolute inset-0 rounded-full border-2 border-indigo-400/60"
+              animate={{ scale: [1, 1.2, 1], opacity: [0.6, 0, 0.6] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            />
+          </motion.button>
+        </div>
+      )}
     </motion.div>
   );
 };

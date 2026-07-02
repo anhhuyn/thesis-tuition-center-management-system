@@ -487,27 +487,8 @@ export function TeacherManagementPage() {
           <div className="col-span-12 lg:col-span-3">
             <div className="space-y-6 sticky top-6">
               <QuickActions onExport={handleExportExcel} />
-              <RecentActivities activities={[]} />
+              <RecentActivities  />
 
-              {/* Pro Feature Card */}
-              <div className="btn-gradient rounded-2xl p-5 text-white shadow-lg shadow-purple-500/20 relative overflow-hidden">
-                <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full"></div>
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/5 to-transparent rounded-full blur-2xl"></div>
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="w-4 h-4 text-yellow-300" />
-                    <p className="text-xs font-bold uppercase tracking-widest opacity-80">Tính năng Pro</p>
-                  </div>
-                  <h4 className="text-lg font-bold mt-1">Phân tích thông minh</h4>
-                  <p className="text-xs mt-2 opacity-90 leading-relaxed">
-                    Dự đoán hiệu suất giảng dạy của giáo viên với các mô hình AI mới. Có sẵn trong gói của bạn!
-                  </p>
-                  <button className="mt-4 bg-white text-purple-600 px-4 py-1.5 rounded-lg text-[10px] font-bold hover:bg-gray-100 transition-colors uppercase flex items-center gap-1">
-                    Khám phá ngay
-                    <Sparkles className="w-3 h-3" />
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         </div>

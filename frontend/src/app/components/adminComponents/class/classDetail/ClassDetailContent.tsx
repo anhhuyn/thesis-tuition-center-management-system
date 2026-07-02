@@ -894,7 +894,10 @@ export const ClassDetailContent = ({ subject, onRefresh, isTeacher = false, onNa
                         </div>
                     </div>
                     <div className="p-6">
-                        <AttendanceCard attendanceDisplay={attendanceDisplay} onOpenAttendance={onNavigateToAttendance} />
+                        <AttendanceCard
+                            attendanceDisplay={attendanceDisplay}
+                            onOpenAttendance={onNavigateToAttendance || (() => { })}
+                        />
                     </div>
                 </motion.div>
 

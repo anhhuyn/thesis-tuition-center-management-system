@@ -14,7 +14,7 @@ type Props = {
     onTabChange?: (tabIndex: number) => void;
 };
 
-export const MainContentSection = ({ activeTab, subject, onRefreshSubject, isTeacher, onTabChange }: Props) => {
+export const MainContentSection = ({ activeTab, subject, isTeacher, onTabChange }: Props) => {
 
     const handleNavigateToMaterials = () => {
         if (onTabChange) {
@@ -39,7 +39,7 @@ export const MainContentSection = ({ activeTab, subject, onRefreshSubject, isTea
             case 1:
                 return <StudentTableSection subject={subject} isTeacher={isTeacher} />;
             case 2:
-                return <CurriculumSection subject={subject} isTeacher={isTeacher} />;
+                  return <CurriculumSection subject={subject!} isTeacher={isTeacher} />;
 
             case 3:
                 return <CalendarSection subject={subject} isTeacher={isTeacher} />;

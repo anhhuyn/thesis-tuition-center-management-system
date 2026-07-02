@@ -3,7 +3,6 @@ import React, { memo, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CloudUpload, X, Loader2, File, Video, FileText, Edit2 } from "lucide-react";
 import type { EditModalProps, FloatingUploadButtonProps, UploadModalProps } from "./types";
-import type { Material } from "../../../../../utils/types/material";
 
 export const FloatingUploadButton = memo(({ onClick }: FloatingUploadButtonProps) => {
     const [showTooltip, setShowTooltip] = useState(false);

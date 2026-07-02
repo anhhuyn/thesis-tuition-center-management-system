@@ -153,7 +153,7 @@ export const LibraryModal = ({ isOpen, onClose, images, files, initialTab = 'ima
         )}
       </AnimatePresence>
 
-      {/* Image Preview Modal - Nằm ngoài và có z-index cao hơn */}
+      {/* Image Preview Modal*/}
       <AnimatePresence>
         {selectedImage && (
           <motion.div

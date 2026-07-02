@@ -15,8 +15,6 @@ import {
   Clock,
   UserCheck,
   MapPin,
-  MoreHorizontal,
-  X,
   CalendarPlus,
   ClockPlus,
   AlertCircle,
@@ -30,14 +28,10 @@ import type { Subject } from "../../../../utils/types/subject";
 import { subjectScheduleApi } from "../../../../utils/api/subjectSchedule.api";
 import { useOutletContext } from "react-router-dom";
 
-// Thêm interface cho context
 interface OutletContext {
   setAlert?: (alert: { type: "success" | "error" | "info"; message: string }) => void;
 }
 
-// ============================================================================
-// Constants & Utilities - Vietnamese
-// ============================================================================
 const WEEKDAYS_FULL = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"];
 const WEEKDAYS_SHORT = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
@@ -63,9 +57,6 @@ const getStatusConfig = (status?: string) => {
   }
 };
 
-// ============================================================================
-// Props Interface
-// ============================================================================
 interface CalendarSectionProps {
   subject: Subject | null;
   isLoading?: boolean;
@@ -77,9 +68,6 @@ interface CalendarSectionProps {
   isTeacher?: boolean;
 }
 
-// ============================================================================
-// Floating Action Buttons Component
-// ============================================================================
 interface FloatingActionButtonsProps {
   onOpenSchedule: () => void;
   onOpenSession: () => void;

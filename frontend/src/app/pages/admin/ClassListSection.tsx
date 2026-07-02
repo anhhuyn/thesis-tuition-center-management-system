@@ -14,10 +14,10 @@ import {
   X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import type { UpcomingSession } from "../../../utils/types/session";
-import { sessionApi, subjectApi } from "../../../utils/api";
-import type { Subject } from "../../../utils/types/subject";
-import { getImageSrc, getInitials } from "../../../utils/helpers";
+import type { UpcomingSession } from "../../utils/types/session";
+import { sessionApi, subjectApi } from "../../utils/api";
+import type { Subject } from "../../utils/types/subject";
+import { getImageSrc, getInitials } from "../../utils/helpers";
 import AddClassModal from "./AddClassModal";
 
 import Highcharts from 'highcharts';

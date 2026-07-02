@@ -42,7 +42,7 @@ const StudentStats: React.FC<StudentStatsProps> = ({ onStatsLoaded, students = [
       let femaleCount = 0;
       
       try {
-        const genderStats = await studentApi.getStatisticsGender();
+        const genderStats = await studentApi.getStatisticsGender(students);
         maleCount = genderStats.male;
         femaleCount = genderStats.female;
         console.log('Gender stats from API:', { maleCount, femaleCount });

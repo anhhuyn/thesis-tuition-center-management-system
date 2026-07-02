@@ -6,7 +6,6 @@ import { AnimatePresence } from "framer-motion";
 import { studentSubjectApi } from "../../../../../utils/api";
 import type { Subject } from "../../../../../utils/types/subject";
 import type { StudentSubject } from "../../../../../utils/types/studentSubject";
-import type { CurriculumEvaluation } from "../../../../../utils/types/evaluation";
 import { StudentCard } from "./StudentCard";
 import { StudentDetailPanel } from "./StudentDetailPanel";
 import { SkeletonCard } from "./SkeletonCard";

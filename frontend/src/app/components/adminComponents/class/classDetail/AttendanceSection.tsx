@@ -4,48 +4,44 @@ import {
   CheckCircle,
   XCircle,
   Search,
-  Plus,
   ChevronDown,
   Clock,
-  User,
   MoreHorizontal,
   Edit2,
   Save,
-  Sun,
-  Moon,
   UserCheck,
   UserX,
   Clock as ClockIcon,
   GraduationCap,
-  Calendar,
   Award,
-  Activity,
   BookOpen,
   FileText,
   ClipboardList,
   AlertCircle,
+  Loader2,
+  School,
+  Calendar,
+  Users
 } from "lucide-react";
 import clsx from "clsx";
 import type { Subject } from "../../../../utils/types/subject";
 import { sessionApi } from "../../../../utils/api";
 import type { SessionOfSubject } from "../../../../utils/types/session";
 import { attendanceApi } from "../../../../utils/api/attendance.api";
-import type { AttendanceResponse, StudentAttendance, AttendanceItem } from "../../../../utils/types/attendance";
-import type { TeacherAttendance, TeacherAttendanceItem, TeacherAttendanceResponse } from "../../../../utils/types/teacher-attendance";
+import type { AttendanceResponse, AttendanceItem } from "../../../../utils/types/attendance";
+import type { TeacherAttendanceItem, TeacherAttendanceResponse } from "../../../../utils/types/teacher-attendance";
 import { teacherAttendanceApi } from "../../../../utils/api/teacherAttendance.api";
 import { useOutletContext } from "react-router-dom";
 import { SessionContentModal } from "./SessionContentModal";
-
-// ============================================================================
-// TYPES
-// ============================================================================
-type AttendanceStatus = "present" | "late" | "absent" | "pending" | "not_enrolled" | "removed" | "not_enrolled_yet" | "completed";
+import { cn } from "../../../../utils/cn";
 
 type StatusType = "present" | "late" | "absent";
 
 interface Student {
   id: string;
   name: string;
+  gender: boolean | null;
+  schoolName: string | null;
   avatar: string;
   status: StatusType;
   note?: string | null;
@@ -62,7 +58,6 @@ export interface Session {
   status?: string;
 }
 
-// Interface cho nội dung buổi học
 interface SessionContent {
   displayTopic: string | null;
   displayContent: string | null;
@@ -72,10 +67,6 @@ interface SessionContent {
   deviationReason: string | null;
   noteForNextSession: string | null;
 }
-
-// ============================================================================
-// CONSTANTS
-// ============================================================================
 
 const statusConfig = {
   present: {
@@ -130,244 +121,59 @@ const useCountUp = (end: number, duration = 1000) => {
   return count;
 };
 
-// ============================================================================
-// NEW COMPONENT: Session Content Card
-// ============================================================================
+const retryRequest = async <T,>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  initialDelay: number = 1000
+): Promise<T> => {
+  let lastError: any;
 
-const SessionContentCard: React.FC<{
-  sessionId: number;
-  onEdit?: () => void;
-  isCanceled?: boolean;
-}> = ({ sessionId, onEdit, isCanceled = false }) => {
-  const [content, setContent] = useState<SessionContent | null>(null);
-  const [loading, setLoading] = useState(true);
-  const { setAlert } = useOutletContext<any>();
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (attempt === maxRetries) break;
 
-  useEffect(() => {
-    const fetchContent = async () => {
-      if (!sessionId) return;
-      
-      try {
-        setLoading(true);
-        const data = await sessionApi.getSessionContent(sessionId);
-        setContent(data);
-      } catch (error) {
-        console.error("Error fetching session content:", error);
-        setAlert?.({
-          type: "error",
-          message: "Không thể tải nội dung buổi học!",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchContent();
-  }, [sessionId, setAlert]);
-
-  if (loading) {
-    return (
-      <div className="bg-white dark:bg-gray-900/80 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
-        <div className="animate-pulse space-y-3">
-          <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-1/3" />
-          <div className="space-y-2">
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full" />
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-5/6" />
-          </div>
-        </div>
-      </div>
-    );
+      const delay = initialDelay * Math.pow(2, attempt - 1);
+      console.log(`Retry attempt ${attempt + 1} after ${delay}ms`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
   }
 
-  if (!content) return null;
+  throw lastError;
+};
 
-  const hasContent = content.displayTopic || content.displayContent || content.displayHomework;
+// Helper: Generate initials from full name
+const getInitials = (name: string) => {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+};
 
-  if (!hasContent && !isCanceled) {
-    return (
-      <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 rounded-2xl border border-amber-200 dark:border-amber-800 p-5">
-        <div className="flex items-start gap-3">
-          <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/30">
-            <AlertCircle size={18} className="text-amber-600 dark:text-amber-400" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-1">
-              Chưa cập nhật nội dung buổi học
-            </h3>
-            <p className="text-xs text-amber-600 dark:text-amber-400 mb-3">
-              Vui lòng cập nhật nội dung trước khi điểm danh
-            </p>
-            {onEdit && (
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={onEdit}
-                className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-all"
-              >
-                <Edit2 size={12} />
-                Cập nhật nội dung
-              </motion.button>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (isCanceled) {
-    return (
-      <div className="bg-red-50 dark:bg-red-950/20 rounded-2xl border border-red-200 dark:border-red-800 p-5">
-        <div className="flex items-start gap-3">
-          <div className="p-2 rounded-xl bg-red-100 dark:bg-red-900/30">
-            <XCircle size={18} className="text-red-600 dark:text-red-400" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-semibold text-red-800 dark:text-red-300">
-              Buổi học đã bị hủy
-            </h3>
-            <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-              Không thể điểm danh cho buổi học này
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+// Avatar component with initials fallback
+const Avatar = ({ name, size = "md" }: { name: string; size?: "sm" | "md" | "lg" }) => {
+  const initials = getInitials(name);
+  const sizeClasses = {
+    sm: "w-8 h-8 text-xs",
+    md: "w-9 h-9 text-sm",
+    lg: "w-12 h-12 text-base",
+  };
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-white dark:bg-gray-900/80 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden hover:shadow-lg transition-all duration-300"
-    >
-      {/* Header */}
-      <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/20 dark:to-purple-950/20">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
-              <BookOpen size={16} className="text-indigo-600 dark:text-indigo-400" />
-            </div>
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-              Nội dung buổi học
-            </h3>
-          </div>
-          
-          {/* Following Plan Badge */}
-          {content.isFollowingPlan !== undefined && (
-            <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-medium ${
-              content.isFollowingPlan
-                ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
-                : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
-            }`}>
-              {content.isFollowingPlan ? (
-                <CheckCircle size={10} />
-              ) : (
-                <AlertCircle size={10} />
-              )}
-              <span>{content.isFollowingPlan ? 'Đúng kế hoạch' : 'Lệch kế hoạch'}</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Content Body */}
-      <div className="p-5 space-y-4">
-        {/* Topic */}
-        {content.displayTopic && (
-          <div>
-            <label className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-              <ClipboardList size={12} />
-              CHỦ ĐỀ
-            </label>
-            <p className="text-sm text-gray-800 dark:text-gray-200 font-medium">
-              {content.displayTopic}
-            </p>
-          </div>
-        )}
-
-        {/* Content */}
-        {content.displayContent && (
-          <div>
-            <label className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-              <FileText size={12} />
-              NỘI DUNG
-            </label>
-            <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap max-h-32 overflow-y-auto">
-              {content.displayContent}
-            </div>
-          </div>
-        )}
-
-        {/* Homework */}
-        {content.displayHomework && (
-          <div>
-            <label className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-              <ClipboardList size={12} />
-              BÀI TẬP VỀ NHÀ
-            </label>
-            <p className="text-sm text-gray-700 dark:text-gray-300">
-              {content.displayHomework}
-            </p>
-          </div>
-        )}
-
-        {/* Deviation Reason */}
-        {content.deviationReason && (
-          <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-xl border-l-2 border-amber-400">
-            <label className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-              LÝ DO THAY ĐỔI
-            </label>
-            <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-              {content.deviationReason}
-            </p>
-          </div>
-        )}
-
-        {/* Note for Next Session */}
-        {content.noteForNextSession && (
-          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-xl border-l-2 border-blue-400">
-            <label className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-              GHI CHÚ CHO BUỔI SAU
-            </label>
-            <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-              {content.noteForNextSession}
-            </p>
-          </div>
-        )}
-
-        {/* Planned Topic (when not following plan) */}
-        {!content.isFollowingPlan && content.plannedTopic && (
-          <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-            <label className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              KẾ HOẠCH THAM KHẢO
-            </label>
-            <p className="text-xs text-gray-500 dark:text-gray-400 line-through mt-1">
-              {content.plannedTopic}
-            </p>
-          </div>
-        )}
-
-        {/* Edit Button */}
-        {onEdit && (
-          <div className="pt-2">
-            <motion.button
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={onEdit}
-              className="w-full py-2 text-xs border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-all flex items-center justify-center gap-2"
-            >
-              <Edit2 size={12} />
-              Chỉnh sửa nội dung
-            </motion.button>
-          </div>
-        )}
-      </div>
-    </motion.div>
+    <div className={cn(
+      "rounded-full bg-gradient-to-br from-violet-100 to-indigo-100 flex items-center justify-center text-violet-600 font-semibold shadow-sm",
+      sizeClasses[size]
+    )}>
+      {initials}
+    </div>
   );
 };
 
 // ============================================================================
-// EXISTING COMPONENTS (MonthSelector, SessionCard, StatsCard, TeacherCard, StatusToggle, StudentCard, LoadingSkeleton, EmptyState)
+// COMPONENTS
 // ============================================================================
 
 // ----- Month Selector Component -----
@@ -894,47 +700,6 @@ const TeacherCard: React.FC<TeacherCardProps> = ({
   );
 };
 
-// ----- Status Toggle Component -----
-const StatusToggle: React.FC<{
-  status: StatusType;
-  onChange: (status: StatusType) => void;
-}> = ({ status, onChange }) => {
-  const buttons = [
-    { key: "present" as const, icon: CheckCircle, label: "Có mặt" },
-    { key: "late" as const, icon: Clock, label: "Muộn" },
-    { key: "absent" as const, icon: XCircle, label: "Vắng" },
-  ];
-
-  return (
-    <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
-      {buttons.map((btn) => {
-        const Icon = btn.icon;
-        const isActive = status === btn.key;
-        const config = statusConfig[btn.key];
-
-        return (
-          <motion.button
-            key={btn.key}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => onChange(btn.key)}
-            className={clsx(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
-              isActive
-                ? `${config.bgLight} ${config.textLight} shadow-sm`
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-            )}
-          >
-            <Icon size={12} />
-            <span className="hidden sm:inline">{btn.label}</span>
-          </motion.button>
-        );
-      })}
-    </div>
-  );
-};
-
-// ----- Student Card -----
 const StudentCard: React.FC<{
   student: Student;
   onStatusChange: (id: string, status: StatusType) => void;
@@ -945,6 +710,7 @@ const StudentCard: React.FC<{
 }> = ({ student, onStatusChange, onNoteChange, index, isUpdatingStatus, isUpdatingNote }) => {
   const [isEditingNote, setIsEditingNote] = useState(false);
   const [noteValue, setNoteValue] = useState(student.note || "");
+  const [isHoveringNote, setIsHoveringNote] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -965,52 +731,106 @@ const StudentCard: React.FC<{
     }
   };
 
+  const getStatusLabel = (status: StatusType) => {
+    switch (status) {
+      case "present": return { label: "Có mặt", color: "emerald" };
+      case "late": return { label: "Đi muộn", color: "amber" };
+      case "absent": return { label: "Vắng", color: "red" };
+      default: return { label: "Chưa điểm danh", color: "gray" };
+    }
+  };
+
+  const statusInfo = getStatusLabel(student.status);
+
+  const statusColors = {
+    emerald: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
+    amber: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
+    red: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
+    gray: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.03 }}
       whileHover={{ y: -2, transition: { duration: 0.2 } }}
-      className="group bg-white dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-all duration-200"
+      className="group flex items-center justify-between p-3 rounded-xl border transition-all duration-200 cursor-pointer bg-white dark:bg-gray-900/50 border-slate-100 dark:border-gray-800 hover:shadow-md hover:border-slate-200 dark:hover:border-gray-700"
     >
-      <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-[180px]">
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="relative">
-            <img
-              src={student.avatar}
-              alt={student.name}
-              className="w-10 h-10 rounded-full object-cover ring-2 ring-transparent group-hover:ring-indigo-500/50 transition-all duration-200"
-            />
-            <div className={clsx(
-              "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full ring-2 ring-white dark:ring-gray-900",
-              student.status === "present" ? "bg-emerald-500" :
-                student.status === "late" ? "bg-amber-500" :
-                  "bg-red-500"
-            )} />
+      <div className="flex items-center gap-3 flex-1">
+        <Avatar name={student.name} size="md" />
+        <div className="flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm font-semibold text-slate-800 dark:text-gray-200">{student.name}</p>
+            <span className={cn(
+              "text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
+              statusColors[statusInfo.color as keyof typeof statusColors]
+            )}>
+              {statusInfo.label}
+            </span>
             {(isUpdatingStatus || isUpdatingNote) && (
-              <div className="absolute -top-1 -right-1 w-4 h-4">
-                <div className="w-3 h-3 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-              </div>
+              <div className="w-3 h-3 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
             )}
-          </motion.div>
-          <div>
-            <div className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{student.name}</div>
-            <div className="text-xs text-gray-400">#{student.id}</div>
+          </div>
+          <div className="flex items-center gap-3 mt-0.5">
+            <div className="flex items-center gap-1">
+             <span className={cn(
+              "text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
+              student.gender === true
+                ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                : student.gender === false
+                  ? "bg-pink-50 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400"
+                  : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+            )}>
+              {student.gender === true ? "Nam" : student.gender === false ? "Nữ" : "Khác"}
+            </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <School size={10} className="text-slate-400" />
+              <span className="text-[10px] text-slate-500 truncate max-w-[150px]">
+                {student.schoolName || "Chưa có trường"}
+              </span>
+            </div>
           </div>
         </div>
+      </div>
 
-        <div className="flex-1 flex justify-center sm:justify-start">
-          <div className={isUpdatingStatus ? "opacity-50 pointer-events-none" : ""}>
-            <StatusToggle
-              status={student.status}
-              onChange={(newStatus) => onStatusChange(student.id, newStatus)}
-            />
-          </div>
+      <div className="flex items-center gap-3">
+        {/* Status Toggle Buttons */}
+        <div className="flex items-center gap-0.5 bg-gray-100/80 dark:bg-gray-800/80 p-0.5 rounded-lg">
+          {["present", "late", "absent"].map((status) => {
+            const isActive = student.status === status;
+            const config = statusConfig[status as keyof typeof statusConfig];
+            const Icon = config.icon;
+
+            return (
+              <motion.button
+                key={status}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onStatusChange(student.id, status as StatusType)}
+                className={cn(
+                  "p-1 rounded-lg transition-all duration-200",
+                  isActive
+                    ? `${config.bgLight} ${config.textLight} shadow-sm`
+                    : "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                )}
+                title={config.label}
+              >
+                <Icon size={14} />
+              </motion.button>
+            );
+          })}
         </div>
 
-        <div className="flex-1 min-w-[140px]">
+        {/* Note Input */}
+        <div 
+          className="relative min-w-[160px] sm:min-w-[180px] md:min-w-[200px]"
+          onMouseEnter={() => setIsHoveringNote(true)}
+          onMouseLeave={() => setIsHoveringNote(false)}
+        >
           {isEditingNote ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 focus-within:ring-2 focus-within:ring-violet-500 transition-all">
               <input
                 ref={inputRef}
                 type="text"
@@ -1018,37 +838,46 @@ const StudentCard: React.FC<{
                 onChange={(e) => setNoteValue(e.target.value)}
                 onBlur={handleNoteSubmit}
                 onKeyDown={handleKeyDown}
-                placeholder="Thêm ghi chú..."
+                placeholder="Nhập ghi chú..."
+                className="flex-1 px-2 py-1 text-xs bg-transparent border-none focus:outline-none w-32 sm:w-36 md:w-44"
                 disabled={isUpdatingNote}
-                className="flex-1 px-3 py-1.5 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all disabled:opacity-50"
+                autoFocus
               />
-              {isUpdatingNote && (
-                <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-              )}
             </div>
           ) : (
-            <motion.button
-              whileHover={{ scale: 1.01 }}
-              onClick={() => !isUpdatingNote && setIsEditingNote(true)}
-              className={clsx(
-                "w-full text-left px-3 py-1.5 rounded-lg text-xs transition-all duration-200 flex items-center gap-2 group/note",
-                student.note
-                  ? "text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50"
-                  : "text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-950/30",
-                isUpdatingNote && "opacity-50 cursor-not-allowed"
+            <div className="relative">
+              <motion.button
+                whileHover={{ scale: 1.01 }}
+                onClick={() => !isUpdatingNote && setIsEditingNote(true)}
+                className={cn(
+                  "w-full text-left px-2 py-1 rounded-lg text-xs transition-all duration-200 flex items-center gap-1",
+                  student.note
+                    ? "text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700"
+                    : "text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 bg-gray-50/50 dark:bg-gray-800/30 hover:bg-violet-50 dark:hover:bg-violet-950/30 border border-transparent hover:border-violet-200 dark:hover:border-violet-800"
+                )}
+                disabled={isUpdatingNote}
+              >
+                <Edit2 size={10} className="flex-shrink-0" />
+                <span className="truncate max-w-[100px] sm:max-w-[120px] md:max-w-[140px]">
+                  {student.note || "Ghi chú"}
+                </span>
+              </motion.button>
+
+              {student.note && isHoveringNote && (
+                <div className="absolute bottom-full left-0 mb-2 z-50">
+                  <div className="bg-gray-900 dark:bg-gray-700 text-white text-xs px-3 py-2 rounded-lg shadow-xl max-w-xs break-words">
+                    {student.note}
+                    <div className="absolute -bottom-1 left-3 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45" />
+                  </div>
+                </div>
               )}
-              disabled={isUpdatingNote}
-            >
-              <Edit2 size={10} className="opacity-0 group-hover/note:opacity-100 transition-opacity" />
-              <span className="truncate">{student.note || "Thêm ghi chú..."}</span>
-            </motion.button>
+            </div>
           )}
         </div>
-
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         >
           <MoreHorizontal size={14} />
         </motion.button>
@@ -1057,25 +886,244 @@ const StudentCard: React.FC<{
   );
 };
 
-// ----- Loading Skeleton -----
-const LoadingSkeleton: React.FC = () => (
-  <div className="space-y-3">
-    {[1, 2, 3, 4].map((i) => (
-      <div key={i} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse" />
-            <div className="space-y-2">
-              <div className="h-4 w-28 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-              <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+// ----- Session Content Card -----
+const SessionContentCard: React.FC<{
+  sessionId: number;
+  onEdit?: () => void;
+  isCanceled?: boolean;
+}> = ({ sessionId, onEdit, isCanceled = false }) => {
+  const [content, setContent] = useState<SessionContent | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { setAlert } = useOutletContext<any>();
+
+  useEffect(() => {
+    const fetchContent = async () => {
+      if (!sessionId) return;
+
+      try {
+        setLoading(true);
+        const data = await sessionApi.getSessionContent(sessionId);
+        setContent(data);
+      } catch (error) {
+        console.error("Error fetching session content:", error);
+        setAlert?.({
+          type: "error",
+          message: "Không thể tải nội dung buổi học!",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchContent();
+  }, [sessionId, setAlert]);
+
+  if (loading) {
+    return (
+      <div className="bg-white dark:bg-gray-900/80 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+        <div className="animate-pulse space-y-3">
+          <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-1/3" />
+          <div className="space-y-2">
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full" />
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-5/6" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!content) return null;
+
+  const hasContent = content.displayTopic || content.displayContent || content.displayHomework;
+
+  if (!hasContent && !isCanceled) {
+    return (
+      <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 rounded-2xl border border-amber-200 dark:border-amber-800 p-5">
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/30">
+            <AlertCircle size={18} className="text-amber-600 dark:text-amber-400" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-1">
+              Chưa cập nhật nội dung buổi học
+            </h3>
+            <p className="text-xs text-amber-600 dark:text-amber-400 mb-3">
+              Vui lòng cập nhật nội dung trước khi điểm danh
+            </p>
+            {onEdit && (
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onEdit}
+                className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-all"
+              >
+                <Edit2 size={12} />
+                Cập nhật nội dung
+              </motion.button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isCanceled) {
+    return (
+      <div className="bg-red-50 dark:bg-red-950/20 rounded-2xl border border-red-200 dark:border-red-800 p-5">
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-xl bg-red-100 dark:bg-red-900/30">
+            <XCircle size={18} className="text-red-600 dark:text-red-400" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-red-800 dark:text-red-300">
+              Buổi học đã bị hủy
+            </h3>
+            <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+              Không thể điểm danh cho buổi học này
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white dark:bg-gray-900/80 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden hover:shadow-lg transition-all duration-300"
+    >
+      <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/20 dark:to-purple-950/20">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
+              <BookOpen size={16} className="text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+              Nội dung buổi học
+            </h3>
+          </div>
+
+          {content.isFollowingPlan !== undefined && (
+            <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-medium ${content.isFollowingPlan
+              ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+              : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+              }`}>
+              {content.isFollowingPlan ? (
+                <CheckCircle size={10} />
+              ) : (
+                <AlertCircle size={10} />
+              )}
+              <span>{content.isFollowingPlan ? 'Đúng kế hoạch' : 'Lệch kế hoạch'}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="p-5 space-y-4">
+        {content.displayTopic && (
+          <div>
+            <label className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+              <ClipboardList size={12} />
+              CHỦ ĐỀ
+            </label>
+            <p className="text-sm text-gray-800 dark:text-gray-200 font-medium">
+              {content.displayTopic}
+            </p>
+          </div>
+        )}
+
+        {content.displayContent && (
+          <div>
+            <label className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+              <FileText size={12} />
+              NỘI DUNG
+            </label>
+            <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap max-h-32 overflow-y-auto">
+              {content.displayContent}
             </div>
           </div>
-          <div className="flex gap-1">
-            {[1, 2, 3].map((j) => (
-              <div key={j} className="w-16 h-8 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
-            ))}
+        )}
+
+        {content.displayHomework && (
+          <div>
+            <label className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+              <ClipboardList size={12} />
+              BÀI TẬP VỀ NHÀ
+            </label>
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              {content.displayHomework}
+            </p>
           </div>
-          <div className="w-32 h-8 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
+        )}
+
+        {content.deviationReason && (
+          <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-xl border-l-2 border-amber-400">
+            <label className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+              LÝ DO THAY ĐỔI
+            </label>
+            <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+              {content.deviationReason}
+            </p>
+          </div>
+        )}
+
+        {content.noteForNextSession && (
+          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-xl border-l-2 border-blue-400">
+            <label className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+              GHI CHÚ CHO BUỔI SAU
+            </label>
+            <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+              {content.noteForNextSession}
+            </p>
+          </div>
+        )}
+
+        {!content.isFollowingPlan && content.plannedTopic && (
+          <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+            <label className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              KẾ HOẠCH THAM KHẢO
+            </label>
+            <p className="text-xs text-gray-500 dark:text-gray-400 line-through mt-1">
+              {content.plannedTopic}
+            </p>
+          </div>
+        )}
+
+        {onEdit && (
+          <div className="pt-2">
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={onEdit}
+              className="w-full py-2 text-xs border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-all flex items-center justify-center gap-2"
+            >
+              <Edit2 size={12} />
+              Chỉnh sửa nội dung
+            </motion.button>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+};
+
+// ----- Loading Skeleton -----
+const LoadingSkeleton: React.FC = () => (
+  <div className="space-y-2">
+    {[1, 2, 3, 4].map((i) => (
+      <div key={i} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-gray-800 bg-white dark:bg-gray-900/50 animate-pulse">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-gray-700" />
+          <div className="space-y-2">
+            <div className="h-4 w-32 bg-slate-200 dark:bg-gray-700 rounded" />
+            <div className="h-3 w-48 bg-slate-100 dark:bg-gray-800 rounded" />
+          </div>
+        </div>
+        <div className="flex gap-1">
+          <div className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-gray-700" />
+          <div className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-gray-700" />
+          <div className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-gray-700" />
         </div>
       </div>
     ))}
@@ -1100,15 +1148,15 @@ const EmptyState: React.FC<EmptyStateProps> = ({
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="text-center py-12"
+      className="flex flex-col items-center justify-center py-12 text-center"
     >
-      <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center">
-        <User size={32} className="text-gray-400" />
+      <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-gray-800 flex items-center justify-center mb-3">
+        <Users className="w-6 h-6 text-slate-400 dark:text-gray-500" />
       </div>
-      <h3 className="text-gray-600 dark:text-gray-400 font-medium mb-1">
+      <p className="text-sm font-medium text-slate-700 dark:text-gray-300">
         {message || (hasStudents ? "Không có học sinh hợp lệ" : "Không có học sinh")}
-      </h3>
-      <p className="text-sm text-gray-400 max-w-sm mx-auto">
+      </p>
+      <p className="text-xs text-slate-400 dark:text-gray-500 mt-1 max-w-sm">
         {message || (hasStudents
           ? "Tất cả học sinh trong buổi học này đều chưa được đăng ký, đã bị xóa hoặc đã hoàn thành khóa học trước đó."
           : "Chưa có dữ liệu điểm danh cho buổi học này. Vui lòng kiểm tra lại.")}
@@ -1117,9 +1165,6 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   );
 };
 
-// ============================================================================
-// MAIN COMPONENT
-// ============================================================================
 
 interface AttendanceSectionProps {
   subject: Subject | null;
@@ -1133,6 +1178,7 @@ export const AttendanceSection: React.FC<AttendanceSectionProps> = ({ subject })
   const [isLoading, setIsLoading] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveProgress, setSaveProgress] = useState(0);
   const [hasChanges, setHasChanges] = useState(false);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loadingSchedule, setLoadingSchedule] = useState(true);
@@ -1148,6 +1194,7 @@ export const AttendanceSection: React.FC<AttendanceSectionProps> = ({ subject })
 
   const [showContentModal, setShowContentModal] = useState(false);
   const [hasUpdatedContent, setHasUpdatedContent] = useState(false);
+  const [bulkStatus, setBulkStatus] = useState<StatusType | "">("");
 
   const { setAlert } = useOutletContext<any>();
 
@@ -1230,6 +1277,8 @@ export const AttendanceSection: React.FC<AttendanceSectionProps> = ({ subject })
           mappedStudents.push({
             id: student.studentId.toString(),
             name: student.fullName,
+            gender: student.gender,
+            schoolName: student.schoolName,
             avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(student.fullName)}&background=6366f1&color=fff`,
             status: "absent",
             note: null,
@@ -1245,7 +1294,7 @@ export const AttendanceSection: React.FC<AttendanceSectionProps> = ({ subject })
         ];
 
         if (invalidStatuses.includes(attendance.status)) {
-          console.log(`⏭️ Skipped student: ${student.fullName} - Status: ${attendance.status}`);
+          console.log(`Skipped student: ${student.fullName} - Status: ${attendance.status}`);
           continue;
         }
 
@@ -1266,6 +1315,8 @@ export const AttendanceSection: React.FC<AttendanceSectionProps> = ({ subject })
         mappedStudents.push({
           id: student.studentId.toString(),
           name: student.fullName,
+          gender: student.gender,       
+          schoolName: student.schoolName,
           avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(student.fullName)}&background=6366f1&color=fff`,
           status: uiStatus,
           note: attendance.note || null,
@@ -1385,81 +1436,168 @@ export const AttendanceSection: React.FC<AttendanceSectionProps> = ({ subject })
   };
 
   const handleSave = async () => {
-    if (!subject?.id || !selectedSession) return;
+    if (!subject?.id || !selectedSession) {
+      setAlert?.({
+        type: "error",
+        message: "Thiếu thông tin buổi học hoặc môn học!",
+      });
+      return;
+    }
+
     setIsSaving(true);
+    setSaveProgress(0);
 
     try {
-      const promises = [];
       const changesList: string[] = [];
+      const errors: string[] = [];
 
-      const studentChanges = studentList.filter((student, index) => {
-        const original = originalStudentList[index];
-        return original && (student.status !== original.status || student.note !== original.note);
-      });
+      const studentStatusUpdates: { studentId: number; status: StatusType }[] = [];
+      const studentNoteUpdates: { studentId: number; note: string | null }[] = [];
 
-      let studentStatusChanges = 0;
-      let studentNoteChanges = 0;
-
-      for (const student of studentChanges) {
+      studentList.forEach((student) => {
         const original = originalStudentList.find(s => s.id === student.id);
-        if (original && (student.status !== original.status)) {
-          promises.push(
-            attendanceApi.updateStatus({
-              sessionId: selectedSession.id,
+        if (original) {
+          if (student.status !== original.status) {
+            studentStatusUpdates.push({
               studentId: parseInt(student.id),
               status: student.status,
-            })
-          );
-          studentStatusChanges++;
-        }
-        if (original && (student.note !== original.note)) {
-          promises.push(
-            attendanceApi.updateNote({
-              sessionId: selectedSession.id,
+            });
+          }
+          if (student.note !== original.note) {
+            studentNoteUpdates.push({
               studentId: parseInt(student.id),
               note: student.note || null,
-            })
-          );
-          studentNoteChanges++;
+            });
+          }
+        }
+      });
+
+      const totalUpdates = studentStatusUpdates.length + studentNoteUpdates.length;
+      let completedUpdates = 0;
+
+      const processBatchWithRetry = async <T,>(
+        items: T[],
+        processor: (item: T) => Promise<any>,
+        batchSize: number = 5,
+        itemName: string = "item"
+      ) => {
+        if (items.length === 0) return [];
+
+        const results: T[] = [];
+
+        for (let i = 0; i < items.length; i += batchSize) {
+          const batch = items.slice(i, i + batchSize);
+
+          for (let j = 0; j < batch.length; j++) {
+            const item = batch[j];
+            let retries = 3;
+            let success = false;
+            let lastError: any;
+
+            while (retries > 0 && !success) {
+              try {
+                await retryRequest(() => processor(item), 1, 1000);
+                success = true;
+                completedUpdates++;
+                const progress = totalUpdates > 0 ? Math.round((completedUpdates / totalUpdates) * 100) : 0;
+                setSaveProgress(Math.min(progress, 100));
+              } catch (error: any) {
+                lastError = error;
+                retries--;
+                if (retries === 0) {
+                  const errorMsg = error?.response?.data?.message || error?.message || 'Unknown error';
+                  errors.push(`Lỗi ${itemName} #${i + j + 1}: ${errorMsg}`);
+                  console.error(`Failed to update ${itemName} ${i + j + 1}:`, error);
+                } else {
+                  const delay = (3 - retries) * 1000;
+                  console.log(`Retry ${itemName} ${i + j + 1} in ${delay}ms...`);
+                  await new Promise(resolve => setTimeout(resolve, delay));
+                }
+              }
+            }
+
+            if (success) {
+              results.push(item);
+            }
+          }
+        }
+
+        return results;
+      };
+
+      if (studentStatusUpdates.length > 0) {
+        const updated = await processBatchWithRetry(
+          studentStatusUpdates,
+          (update) => attendanceApi.updateStatus({
+            sessionId: selectedSession.id,
+            studentId: update.studentId,
+            status: update.status,
+          }),
+          5,
+          "cập nhật trạng thái học sinh"
+        );
+
+        if (updated.length > 0) {
+          changesList.push(`${updated.length}/${studentStatusUpdates.length} học sinh cập nhật trạng thái`);
         }
       }
 
-      if (studentStatusChanges > 0) {
-        changesList.push(`${studentStatusChanges} học sinh cập nhật trạng thái`);
-      }
-      if (studentNoteChanges > 0) {
-        changesList.push(`${studentNoteChanges} học sinh cập nhật ghi chú`);
-      }
+      if (studentNoteUpdates.length > 0) {
+        const updated = await processBatchWithRetry(
+          studentNoteUpdates,
+          (update) => attendanceApi.updateNote({
+            sessionId: selectedSession.id,
+            studentId: update.studentId,
+            note: update.note,
+          }),
+          5,
+          "cập nhật ghi chú học sinh"
+        );
 
-      if (teacherStatus !== originalTeacherStatus) {
-        const teacher = subject?.teacherSubjects?.[0]?.teacher;
-        if (teacher?.id) {
-          promises.push(
-            teacherAttendanceApi.updateStatus({
-              sessionId: selectedSession.id,
-              teacherId: teacher.id,
-              status: teacherStatus,
-            })
-          );
-          changesList.push(`Cập nhật trạng thái giáo viên: ${teacherStatus === "present" ? "Có mặt" : teacherStatus === "late" ? "Muộn" : "Vắng mặt"}`);
+        if (updated.length > 0) {
+          changesList.push(`${updated.length}/${studentNoteUpdates.length} học sinh cập nhật ghi chú`);
         }
       }
 
-      if (teacherNote !== originalTeacherNote) {
-        const teacher = subject?.teacherSubjects?.[0]?.teacher;
-        if (teacher?.id) {
-          promises.push(
-            teacherAttendanceApi.updateNote({
-              sessionId: selectedSession.id,
-              teacherId: teacher.id,
-              note: teacherNote || null,
-            })
-          );
-          changesList.push(`Cập nhật ghi chú giáo viên`);
+      const teacher = subject?.teacherSubjects?.[0]?.teacher;
+      if (teacher?.id) {
+        if (teacherStatus !== originalTeacherStatus) {
+          try {
+            await retryRequest(() =>
+              teacherAttendanceApi.updateStatus({
+                sessionId: selectedSession.id,
+                teacherId: teacher.id,
+                status: teacherStatus,
+              }),
+              3,
+              1000
+            );
+            changesList.push(`Cập nhật trạng thái giáo viên: ${teacherStatus === "present" ? "Có mặt" : teacherStatus === "late" ? "Muộn" : "Vắng mặt"}`);
+          } catch (error: any) {
+            const errorMsg = error?.response?.data?.message || error?.message || 'Unknown error';
+            errors.push(`Không thể cập nhật trạng thái giáo viên: ${errorMsg}`);
+          }
+        }
+
+        if (teacherNote !== originalTeacherNote) {
+          try {
+            await retryRequest(() =>
+              teacherAttendanceApi.updateNote({
+                sessionId: selectedSession.id,
+                teacherId: teacher.id,
+                note: teacherNote || null,
+              }),
+              3,
+              1000
+            );
+            changesList.push(`Cập nhật ghi chú giáo viên`);
+          } catch (error: any) {
+            const errorMsg = error?.response?.data?.message || error?.message || 'Unknown error';
+            errors.push(`Không thể cập nhật ghi chú giáo viên: ${errorMsg}`);
+          }
         }
       }
 
-      await Promise.all(promises);
       await refreshSessionStatus();
 
       setOriginalStudentList(JSON.parse(JSON.stringify(studentList)));
@@ -1467,55 +1605,68 @@ export const AttendanceSection: React.FC<AttendanceSectionProps> = ({ subject })
       setOriginalTeacherNote(teacherNote);
       setHasChanges(false);
 
-      if (changesList.length > 0) {
+      if (errors.length > 0 && changesList.length > 0) {
+        setAlert?.({
+          type: "warning",
+          message: `Lưu điểm danh có một số vấn đề:\n\n Thành công: ${changesList.join(", ")}\n\n Lỗi: ${errors.join(", ")}`,
+          duration: 8000,
+        });
+      } else if (errors.length > 0) {
+        setAlert?.({
+          type: "error",
+          message: `Lưu điểm danh thất bại:\n\n${errors.join("\n")}`,
+          duration: 8000,
+        });
+        setStudentList(JSON.parse(JSON.stringify(originalStudentList)));
+        setTeacherStatus(originalTeacherStatus);
+        setTeacherNote(originalTeacherNote);
+      } else if (changesList.length > 0) {
         setAlert?.({
           type: "success",
-          message: `Lưu điểm danh thành công!\n${changesList.join(", ")}`,
+          message: `Lưu điểm danh thành công!\n\n${changesList.join("\n")}`,
+          duration: 5000,
         });
       } else {
         setAlert?.({
           type: "info",
           message: "Không có thay đổi nào để lưu.",
+          duration: 3000,
         });
       }
-    } catch (error: any) {
-      console.error("Lỗi lưu điểm danh:", error);
 
-      setAlert?.({
-        type: "error",
-        message: error?.response?.data?.message || "Có lỗi xảy ra khi lưu điểm danh. Vui lòng thử lại!",
-      });
+    } catch (error: any) {
+      console.error("Lỗi nghiêm trọng khi lưu điểm danh:", error);
 
       setStudentList(JSON.parse(JSON.stringify(originalStudentList)));
       setTeacherStatus(originalTeacherStatus);
       setTeacherNote(originalTeacherNote);
+
+      setAlert?.({
+        type: "error",
+        message: error?.response?.data?.message ||
+          error?.message ||
+          "Có lỗi xảy ra khi lưu điểm danh. Vui lòng thử lại!",
+        duration: 5000,
+      });
     } finally {
       setIsSaving(false);
+      setSaveProgress(0);
     }
   };
 
   const handleRevert = () => {
-    setAlert?.({
-      type: "warning",
-      message: "Bạn có chắc chắn muốn hủy bỏ các thay đổi?",
-      action: {
-        label: "Xác nhận",
-        onClick: () => {
-          setStudentList(JSON.parse(JSON.stringify(originalStudentList)));
-          setTeacherStatus(originalTeacherStatus);
-          setTeacherNote(originalTeacherNote);
-          setHasChanges(false);
-          setAlert?.({
-            type: "success",
-            message: "Đã hủy bỏ các thay đổi.",
-          });
-        },
-      },
-      secondaryAction: {
-        label: "Hủy",
-        onClick: () => { },
-      },
-    });
+    setStudentList(JSON.parse(JSON.stringify(originalStudentList)));
+    setTeacherStatus(originalTeacherStatus);
+    setTeacherNote(originalTeacherNote);
+    setHasChanges(false);
+  };
+
+  const handleBulkStatusChange = (status: StatusType) => {
+    if (!status) return;
+
+    setStudentList(prev => prev.map(s => ({ ...s, status })));
+    setBulkStatus("");
+
   };
 
   const updateStatus = (id: string, status: StatusType) => {
@@ -1560,6 +1711,7 @@ export const AttendanceSection: React.FC<AttendanceSectionProps> = ({ subject })
     }
   }, [subject?.id, selectedSession]);
 
+
   useEffect(() => {
     if (isDarkMode) document.documentElement.classList.add("dark");
     else document.documentElement.classList.remove("dark");
@@ -1592,8 +1744,46 @@ export const AttendanceSection: React.FC<AttendanceSectionProps> = ({ subject })
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 transition-colors duration-300">
-      {/* Sticky Header */}
+    <div className="min-h-screen">
+      <AnimatePresence>
+        {isSaving && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full shadow-2xl"
+            >
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                  <Loader2 size={32} className="text-indigo-600 dark:text-indigo-400 animate-spin" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-2">
+                  Đang lưu điểm danh...
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  Vui lòng đợi trong giây lát
+                </p>
+
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-2 overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${saveProgress}%` }}
+                    className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-300"
+                  />
+                </div>
+                <p className="text-xs text-gray-400">{saveProgress}%</p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="sticky top-0 z-20 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800">
         <div className="px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1605,7 +1795,7 @@ export const AttendanceSection: React.FC<AttendanceSectionProps> = ({ subject })
             </div>
 
             {!isCurrentSessionCanceled && (
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <div className="relative">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
@@ -1613,7 +1803,7 @@ export const AttendanceSection: React.FC<AttendanceSectionProps> = ({ subject })
                     placeholder="Tìm kiếm học sinh..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9 pr-4 py-2 w-56 sm:w-64 text-sm bg-gray-100 dark:bg-gray-800 border border-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white dark:focus:bg-gray-900 transition-all"
+                    className="pl-9 pr-4 py-2 w-48 sm:w-64 text-sm bg-gray-100 dark:bg-gray-800 border border-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white dark:focus:bg-gray-900 transition-all"
                   />
                 </div>
 
@@ -1629,6 +1819,20 @@ export const AttendanceSection: React.FC<AttendanceSectionProps> = ({ subject })
                     <option value="absent">Vắng</option>
                   </select>
                   <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
+
+                <div className="relative">
+                  <select
+                    value={bulkStatus}
+                    onChange={(e) => handleBulkStatusChange(e.target.value as StatusType)}
+                    className="appearance-none pl-3 pr-8 py-2 text-sm bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-950/50 transition-all"
+                  >
+                    <option value="">Điểm danh tất cả</option>
+                    <option value="present">Có mặt</option>
+                    <option value="late">Muộn</option>
+                    <option value="absent">Vắng</option>
+                  </select>
+                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-indigo-400 pointer-events-none" />
                 </div>
 
                 {hasChanges && (
@@ -1659,11 +1863,11 @@ export const AttendanceSection: React.FC<AttendanceSectionProps> = ({ subject })
                   )}
                 >
                   {isSaving ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <Loader2 size={16} className="animate-spin" />
                   ) : (
                     <Save size={16} />
                   )}
-                  {hasChanges ? "Lưu điểm danh" : "Đã lưu"}
+                  {isSaving ? "Đang lưu..." : hasChanges ? "Lưu điểm danh" : "Đã lưu"}
                 </motion.button>
               </div>
             )}
@@ -1671,10 +1875,8 @@ export const AttendanceSection: React.FC<AttendanceSectionProps> = ({ subject })
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* LEFT PANEL - Sessions + Content + Stats */}
           <div className="lg:col-span-4 space-y-5">
             <SessionCard
               sessions={sessions}
@@ -1684,8 +1886,7 @@ export const AttendanceSection: React.FC<AttendanceSectionProps> = ({ subject })
               selectedSessionId={selectedSession?.id}
               onSessionClick={setSelectedSession}
             />
-            
-            {/* Session Content Card - Hiển thị ngay dưới lịch trình */}
+
             {selectedSession && (
               <SessionContentCard
                 sessionId={selectedSession.id}
@@ -1693,11 +1894,10 @@ export const AttendanceSection: React.FC<AttendanceSectionProps> = ({ subject })
                 isCanceled={isCurrentSessionCanceled}
               />
             )}
-            
+
             {!isCurrentSessionCanceled && <StatsCard students={studentList} />}
           </div>
 
-          {/* RIGHT PANEL - Teacher + Student List */}
           <div className="lg:col-span-8 space-y-5">
             <TeacherCard
               subject={subject}
@@ -1712,74 +1912,97 @@ export const AttendanceSection: React.FC<AttendanceSectionProps> = ({ subject })
 
             {!isCurrentSessionCanceled ? (
               <>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                      Danh sách học sinh
-                    </span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500">
-                      {filteredStudents.length} / {studentList.length}
-                    </span>
-                    {hasChanges && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
-                        Có thay đổi chưa lưu
+                <div className="bg-white dark:bg-gray-900/80 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+                  <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <Users size={16} className="text-gray-400" />
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Danh sách học sinh
                       </span>
-                    )}
+                      <span className="text-xs text-gray-400">({filteredStudents.length})</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-4 text-xs text-gray-400">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-1 ring-emerald-500/20" />
+                        <span>Có mặt</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-amber-500 ring-1 ring-amber-500/20" />
+                        <span>Muộn</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-500 ring-1 ring-red-500/20" />
+                        <span>Vắng</span>
+                      </div>
+                      {hasChanges && (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 text-[10px] font-medium">
+                          Có thay đổi
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-gray-400">
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                      <span>Có mặt</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-amber-500" />
-                      <span>Muộn</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-red-500" />
-                      <span>Vắng</span>
-                    </div>
-                  </div>
-                </div>
 
-                <AnimatePresence mode="wait">
-                  {isLoading ? (
-                    <LoadingSkeleton />
-                  ) : filteredStudents.length === 0 ? (
-                    <EmptyState
-                      hasStudents={studentList.length === 0 && originalStudentList.length > 0}
-                      isLoading={isLoading}
-                    />
-                  ) : (
-                    <div className="space-y-2 max-h-[1000px] custom-scrollbar pr-2">
-                      {filteredStudents.map((student, idx) => (
-                        <StudentCard
-                          key={student.id}
-                          student={student}
-                          onStatusChange={updateStatus}
-                          onNoteChange={updateNote}
-                          index={idx}
-                          isUpdatingStatus={updatingStudentId === student.id && updatingType === 'status'}
-                          isUpdatingNote={updatingStudentId === student.id && updatingType === 'note'}
+                  <div className="p-4 space-y-2 max-h-[600px] overflow-y-auto custom-scrollbar">
+                    <AnimatePresence >
+                      {isLoading ? (
+                        <LoadingSkeleton />
+                      ) : filteredStudents.length === 0 ? (
+                        <EmptyState
+                          hasStudents={studentList.length === 0 && originalStudentList.length > 0}
+                          isLoading={isLoading}
                         />
-                      ))}
+                      ) : (
+                        filteredStudents.map((student, idx) => (
+                          <StudentCard
+                            key={student.id}
+                            student={student}
+                            onStatusChange={updateStatus}
+                            onNoteChange={updateNote}
+                            index={idx}
+                            isUpdatingStatus={updatingStudentId === student.id && updatingType === 'status'}
+                            isUpdatingNote={updatingStudentId === student.id && updatingType === 'note'}
+                          />
+                        ))
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {filteredStudents.length > 0 && (
+                    <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 flex justify-between text-[11px] text-gray-500 dark:text-gray-400">
+                      <span>Hiển thị {filteredStudents.length} / {studentList.length} học sinh</span>
+                      <span className="font-medium text-indigo-600 dark:text-indigo-400">
+                        {Math.round((studentList.filter(s => s.status === "present" || s.status === "late").length / (studentList.length || 1)) * 100)}% có mặt
+                      </span>
                     </div>
                   )}
-                </AnimatePresence>
+                </div>
               </>
             ) : null}
           </div>
         </div>
       </div>
 
-      {/* Session Content Modal */}
       <SessionContentModal
         isOpen={showContentModal}
         onClose={() => {
-          if (!hasUpdatedContent) {
-            setSelectedSession(null);
-          }
           setShowContentModal(false);
+
+          setHasUpdatedContent(false);
+
+          if (selectedSession && subject?.id) {
+            fetchAttendanceData(subject.id, selectedSession.id);
+            fetchTeacherAttendanceData();
+
+            checkSessionContentStatus(selectedSession.id).then(hasContent => {
+              if (!hasContent && selectedSession.status !== 'canceled') {
+                setAlert?.({
+                  type: "warning",
+                  message: "Bạn chưa cập nhật nội dung buổi học. Vui lòng cập nhật trước khi điểm danh.",
+                  duration: 3000,
+                });
+              }
+            });
+          }
         }}
         session={selectedSession}
         subject={subject}

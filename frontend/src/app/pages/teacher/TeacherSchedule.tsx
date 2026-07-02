@@ -20,7 +20,7 @@ import { teacherApi } from "../../utils/api";
 interface ScheduleTimeGroup {
     time: string;
     type: 'single' | 'conflict';
-    isOngoing: boolean;
+    hasOngoing: boolean;
     conflictLabel?: string;
     conflictIcon?: any;
     item?: any;
@@ -209,7 +209,7 @@ export const TeacherSchedule = () => {
                 result.push({
                     time,
                     type: 'single',
-                    isOngoing,
+                    hasOngoing,
                     item: {
                         sessionId: session.sessionId,
                         classCode: extractClassCode(session.subjectName),
@@ -499,7 +499,7 @@ export const TeacherSchedule = () => {
                                             {sessionsByTime.map((row, idx) => {
                                                 if (row.type === "single") {
                                                     const item = row.item!;
-                                                    const isOngoing = row.isOngoing || item.isOngoing;
+                                                    const isOngoing = row.hasOngoing || item.isOngoing;
                                                     const isCanceled = item.status === 'ĐÃ HỦY';
 
                                                     return (

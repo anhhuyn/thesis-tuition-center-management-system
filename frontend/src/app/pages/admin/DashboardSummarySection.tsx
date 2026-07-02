@@ -15,8 +15,8 @@ import {
   ArrowRight,
   Shield,
 } from "lucide-react";
-import type { SubjectResponse } from "../../../utils/types/subject";
-import { subjectApi } from "../../../utils/api";
+import type { SubjectResponse } from "../../utils/types/subject";
+import { subjectApi } from "../../utils/api";
 
 export const DashboardSummarySection = ({ onAdd }: { onAdd: () => void }) => {
   const [searchValue, setSearchValue] = useState("");

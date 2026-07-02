@@ -131,7 +131,7 @@ export const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
     try {
       const response = await roomApi.getAll();
       if (response && response.data) {
-        setRooms(response.data);
+        setRooms((response.data || []) as any);
       }
     } catch (error) {
       console.error('Failed to fetch rooms:', error);

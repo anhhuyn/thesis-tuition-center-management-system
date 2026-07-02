@@ -7,10 +7,10 @@ interface User {
   email: string
   phoneNumber: string
   roleId: string
-  gender: boolean
+  gender?: boolean | null 
   image?: string
-  createdAt: string
-  passwordUpdatedAt: string
+  createdAt?: string 
+  passwordUpdatedAt?: string 
 }
 
 interface AuthContextType {

@@ -32,3 +32,4 @@ export interface ChangePasswordRequest {
 export interface ChangePasswordResponse {
   message: string
 }
+
